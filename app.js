@@ -645,7 +645,12 @@ function isAuthActive() {
 
 /** Show authentication modal */
 function showAuthModal() {
-  if ($('app-shell')) $('app-shell').hidden = true;
+  if ($('app-shell')) {
+    $('app-shell').hidden = false;
+    $('app-shell').style.filter = 'blur(4px)';
+    $('app-shell').style.pointerEvents = 'none';
+    $('app-shell').style.userSelect = 'none';
+  }
   if ($('auth-overlay')) $('auth-overlay').hidden = false;
   if ($('auth-error')) $('auth-error').hidden = true;
   if ($('auth-password')) $('auth-password').value = '';
@@ -660,7 +665,12 @@ function showAuthModal() {
 function unlockDashboard() {
   sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
   if ($('auth-overlay')) $('auth-overlay').hidden = true;
-  if ($('app-shell')) $('app-shell').hidden = false;
+  if ($('app-shell')) {
+    $('app-shell').hidden = false;
+    $('app-shell').style.filter = 'none';
+    $('app-shell').style.pointerEvents = 'auto';
+    $('app-shell').style.userSelect = 'auto';
+  }
   initDashboardData();
 }
 
@@ -783,6 +793,7 @@ async function initDashboardData() {
 
 (function init() {
   initAuth();
+  initDashboardData();
   if (!isAuthActive()) {
     showAuthModal();
   } else {
