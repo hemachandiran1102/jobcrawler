@@ -139,14 +139,59 @@ function parseExcel(arrayBuffer) {
    ══════════════════════════════════════════════════════════════════════ */
 
 function scoreOf(job) { return Number(String(job['Match Score'] || '').replace(/[^0-9]/g, '')) || 0; }
+
 function parseDate(rawValue) {
   const raw = String(rawValue || '').trim();
-  if (!raw || /^unknown$/i.test(raw)) return null;
+  if (!raw || /^(unknown|undefined|none|null|—)$/i.test(raw)) return null;
+
+  // Direct Date parsing (handles ISO 8601 strings like 2026-08-05T18:30:00.000Z)
   const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+
+  // Regex fallback for YYYY-MM-DD or YYYY/MM/DD
+  const match = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+
+  // Excel Serial Number fallback (e.g., 45500)
+  if (/^\d{5}(\.\d+)?$/.test(raw)) {
+    const excelEpoch = new Date(1899, 11, 30);
+    return new Date(excelEpoch.getTime() + Number(raw) * 86400000);
+  }
+
+  return null;
 }
-function dateOf(job) { return parseDate(job['Posted Date']); }
-function latestCrawlDate(jobs) { return jobs.reduce((latest, job) => { const date = parseDate(job.Date); return date && (!latest || date > latest) ? date : latest; }, null) || new Date(); }
+
+function crawlDateOf(job) {
+  return parseDate(job['Crawl Date']) || parseDate(job.Date) || parseDate(job.CrawlDate);
+}
+
+function postedDateOf(job) {
+  return parseDate(job['Posted Date']) || parseDate(job.PostedDate) || crawlDateOf(job);
+}
+
+function formatDisplayDate(val) {
+  const d = parseDate(val);
+  if (!d) {
+    const s = String(val || '').trim();
+    if (!s || /^(unknown|undefined|none|null)$/i.test(s)) return '—';
+    return s.split('T')[0] || s;
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function latestReferenceDate(jobs) {
+  let maxDate = null;
+  for (const j of jobs) {
+    const d = crawlDateOf(j) || postedDateOf(j);
+    if (d && (!maxDate || d > maxDate)) maxDate = d;
+  }
+  return maxDate || new Date();
+}
 function countBy(list, field) { return [...list.reduce((m, x) => m.set(x[field] || 'Unknown', (m.get(x[field] || 'Unknown') || 0) + 1), new Map())].sort((a,b) => b[1] - a[1]); }
 function titleCase(value) { return value || 'Not specified'; }
 function roleText(job) { return [job['Job Title'], job.Company, job.Location, job['Required Skills'], job['Search Keyword']].join(' ').toLowerCase(); }
@@ -166,27 +211,44 @@ function populateFilters() {
 
 function applyFilters() {
   const s = shortlist(), f = state.filters, q = state.query.toLowerCase();
-  const referenceDate = latestCrawlDate(state.jobs);
+  const referenceDate = latestReferenceDate(state.jobs);
+
   state.filtered = state.jobs.filter((job) => {
     const applied = (job['Applied Status'] || '').toLowerCase();
-    const crawlDt = dateOf(job);
-    const postedDt = parseDate(job['Posted Date']) || parseDate(job.PostedDate) || crawlDt;
+    const crawlDt = crawlDateOf(job);
+    const postedDt = postedDateOf(job);
     
-    const crawlAgeInDays = crawlDt ? (referenceDate - crawlDt) / 86400000 : Infinity;
-    const postedAgeInDays = postedDt ? (referenceDate - postedDt) / 86400000 : Infinity;
-    
-    const isRecent = !f.recent || (crawlAgeInDays >= 0 && crawlAgeInDays <= Number(f.recent));
-    const isPostedRecent = !f.posted || (postedAgeInDays >= 0 && postedAgeInDays <= Number(f.posted));
+    const crawlAgeInDays = crawlDt ? Math.max(0, (referenceDate - crawlDt) / 86400000) : null;
+    const postedAgeInDays = postedDt ? Math.max(0, (referenceDate - postedDt) / 86400000) : null;
+
+    const isCrawlRecent = !f.recent || (crawlAgeInDays !== null && crawlAgeInDays <= Number(f.recent));
+    const isPostedRecent = !f.posted || (postedAgeInDays !== null && postedAgeInDays <= Number(f.posted));
 
     return (!q || roleText(job).includes(q)) &&
            (!f.country || job.Country === f.country) &&
            (!f.workplace || job['Remote / Workplace'] === f.workplace) &&
            (!f.score || scoreOf(job) >= Number(f.score)) &&
-           isRecent && isPostedRecent &&
+           isCrawlRecent && isPostedRecent &&
            (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && applied === 'yes') || (f.status === 'not-applied' && applied !== 'yes'));
   });
+
   const { key, asc } = state.sort;
-  state.filtered.sort((a,b) => { const av = key === 'Match Score' ? scoreOf(a) : (a[key] || '').toLowerCase(); const bv = key === 'Match Score' ? scoreOf(b) : (b[key] || '').toLowerCase(); return av < bv ? (asc ? -1 : 1) : av > bv ? (asc ? 1 : -1) : 0; });
+  state.filtered.sort((a,b) => {
+    let av = '', bv = '';
+    if (key === 'Match Score') {
+      av = scoreOf(a); bv = scoreOf(b);
+    } else if (key === 'Posted Date') {
+      av = postedDateOf(a) ? postedDateOf(a).getTime() : 0;
+      bv = postedDateOf(b) ? postedDateOf(b).getTime() : 0;
+    } else if (key === 'Crawl Date') {
+      av = crawlDateOf(a) ? crawlDateOf(a).getTime() : 0;
+      bv = crawlDateOf(b) ? crawlDateOf(b).getTime() : 0;
+    } else {
+      av = String(a[key] || '').toLowerCase();
+      bv = String(b[key] || '').toLowerCase();
+    }
+    return av < bv ? (asc ? -1 : 1) : av > bv ? (asc ? 1 : -1) : 0;
+  });
 }
 
 function renderMetrics() {
@@ -319,25 +381,24 @@ function renderTable() {
   $('visible-count').textContent = total.toLocaleString();
   $('jobs-body').innerHTML = slice.length ? slice.map((job) => {
     const score = scoreOf(job), work = job['Remote / Workplace'] || 'Not stated', remote = /remote/i.test(work);
-    const postedDate = esc(job['Posted Date'] || job.PostedDate || '—');
-    const crawlDate = esc(job['Crawl Date'] || job.Date || '—');
+    const postedDate = formatDisplayDate(job['Posted Date'] || job.PostedDate);
+    const crawlDate = formatDisplayDate(job['Crawl Date'] || job.Date);
     const isApplied = String(job['Applied Status'] || '').toLowerCase() === 'yes';
     return `<tr>
     <td class="bookmark-cell"><button class="bookmark ${saved.has(keyFor(job)) ? 'active' : ''}" data-save="${esc(keyFor(job))}" title="${saved.has(keyFor(job)) ? 'Remove from shortlist' : 'Add to shortlist'}">${saved.has(keyFor(job)) ? '★' : '☆'}</button></td>
     <td><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Company || 'Not stated')}</span></td>
     <td>${esc(job.Country || 'Global')}</td>
-    <td><span class="track">${postedDate}</span></td>
-    <td><span class="track">${crawlDate}</span></td>
+    <td><span class="track">${esc(postedDate)}</span></td>
+    <td><span class="track">${esc(crawlDate)}</span></td>
     <td><span class="work-pill ${remote ? 'remote' : ''}">${esc(work)}</span></td>
     <td><span class="match-pill ${score ? `score-${score}` : 'score-none'}">${score ? score + '%' : '—'}</span></td>
-    <td><span class="track">${saved.has(keyFor(job)) ? '★ Saved' : 'Queue'}</span></td>
     <td>
       <button class="applied-badge ${isApplied ? 'applied' : ''}" data-applied="${esc(keyFor(job))}">
         ${isApplied ? '✓ Applied' : 'Mark Applied'}
       </button>
     </td>
     <td class="open-cell">${job['Job URL'] ? `<a class="open-link" href="${esc(job['Job URL'])}" target="_blank" rel="noopener" title="Open job posting">↗</a>` : '—'}</td></tr>`;
-  }).join('') : `<tr><td colspan="10" class="empty">No opportunities match these filters.<br/><button class="clear-filters" id="empty-clear">Clear filters</button></td></tr>`;
+  }).join('') : `<tr><td colspan="9" class="empty">No opportunities match these filters.<br/><button class="clear-filters" id="empty-clear">Clear filters</button></td></tr>`;
 
   document.querySelectorAll('[data-save]').forEach((button) => button.onclick = () => { const keys = shortlist(), key = button.dataset.save; const adding = !keys.has(key); adding ? keys.add(key) : keys.delete(key); saveShortlist(keys); renderAll(); showToast(adding ? 'Added to your shortlist.' : 'Removed from your shortlist.'); });
 
