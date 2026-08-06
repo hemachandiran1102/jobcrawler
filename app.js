@@ -9,7 +9,7 @@ const DB_NAME = 'job-compass-db';
 const DB_VERSION = 2;
 const STORE_NAME = 'jobs';
 
-const state = { jobs: [], filtered: [], page: 1, sort: { key: 'Match Score', asc: false }, filters: { country: '', score: '', workplace: '', recent: '', status: '' }, query: '', compact: false };
+const state = { jobs: [], filtered: [], page: 1, sort: { key: 'Match Score', asc: false }, filters: { country: '', score: '', workplace: '', posted: '', recent: '', status: '' }, query: '', compact: false };
 const $ = (id) => document.getElementById(id);
 const esc = (value = '') => String(value).replace(/[&<>"']/g, (s) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'\&#039;' }[s]));
 const keyFor = (job) => job['Job URL'] || `${job.Company}|${job['Job Title']}|${job.Location}`;
@@ -169,10 +169,21 @@ function applyFilters() {
   const referenceDate = latestCrawlDate(state.jobs);
   state.filtered = state.jobs.filter((job) => {
     const applied = (job['Applied Status'] || '').toLowerCase();
-    const posted = dateOf(job);
-    const ageInDays = posted ? (referenceDate - posted) / 86400000 : Infinity;
-    const isRecent = !f.recent || (ageInDays >= 0 && ageInDays <= Number(f.recent));
-    return (!q || roleText(job).includes(q)) && (!f.country || job.Country === f.country) && (!f.workplace || job['Remote / Workplace'] === f.workplace) && (!f.score || scoreOf(job) >= Number(f.score)) && isRecent && (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && applied === 'yes') || (f.status === 'not-applied' && applied !== 'yes'));
+    const crawlDt = dateOf(job);
+    const postedDt = parseDate(job['Posted Date']) || parseDate(job.PostedDate) || crawlDt;
+    
+    const crawlAgeInDays = crawlDt ? (referenceDate - crawlDt) / 86400000 : Infinity;
+    const postedAgeInDays = postedDt ? (referenceDate - postedDt) / 86400000 : Infinity;
+    
+    const isRecent = !f.recent || (crawlAgeInDays >= 0 && crawlAgeInDays <= Number(f.recent));
+    const isPostedRecent = !f.posted || (postedAgeInDays >= 0 && postedAgeInDays <= Number(f.posted));
+
+    return (!q || roleText(job).includes(q)) &&
+           (!f.country || job.Country === f.country) &&
+           (!f.workplace || job['Remote / Workplace'] === f.workplace) &&
+           (!f.score || scoreOf(job) >= Number(f.score)) &&
+           isRecent && isPostedRecent &&
+           (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && applied === 'yes') || (f.status === 'not-applied' && applied !== 'yes'));
   });
   const { key, asc } = state.sort;
   state.filtered.sort((a,b) => { const av = key === 'Match Score' ? scoreOf(a) : (a[key] || '').toLowerCase(); const bv = key === 'Match Score' ? scoreOf(b) : (b[key] || '').toLowerCase(); return av < bv ? (asc ? -1 : 1) : av > bv ? (asc ? 1 : -1) : 0; });
@@ -192,11 +203,12 @@ function renderMetrics() {
 }
 
 function renderFilters() {
-  const labels = { country: 'Country', score: 'Match ≥', workplace: 'Workplace', recent: 'Added', status: 'Status' };
+  const labels = { country: 'Country', score: 'Match ≥', workplace: 'Workplace', posted: 'Job Posted', recent: 'Crawl Date', status: 'Status' };
   const active = Object.entries(state.filters).filter(([,v]) => v);
-  $('filter-count').textContent = active.length; $('filter-button').classList.toggle('has-filters', active.length > 0);
-  $('active-filters').innerHTML = active.map(([key,value]) => `<span class="filter-chip">${labels[key]}: ${esc(key === 'score' ? value + '%' : key === 'recent' ? `last ${value} days` : value)} <button data-clear="${key}" aria-label="Clear ${labels[key]}">×</button></span>`).join('');
-  document.querySelectorAll('[data-clear]').forEach((b) => b.onclick = () => { state.filters[b.dataset.clear] = ''; $(`${b.dataset.clear}-filter`).value = ''; state.page = 1; renderAll(); });
+  if ($('filter-count')) $('filter-count').textContent = active.length;
+  if ($('filter-button')) $('filter-button').classList.toggle('has-filters', active.length > 0);
+  if ($('active-filters')) $('active-filters').innerHTML = active.map(([key,value]) => `<span class="filter-chip">${labels[key]}: ${esc(key === 'score' ? value + '%' : (key === 'recent' || key === 'posted') ? `last ${value} days` : value)} <button data-clear="${key}" aria-label="Clear ${labels[key]}">×</button></span>`).join('');
+  document.querySelectorAll('[data-clear]').forEach((b) => b.onclick = () => { state.filters[b.dataset.clear] = ''; if ($(`${b.dataset.clear}-filter`)) $(`${b.dataset.clear}-filter`).value = ''; state.page = 1; renderAll(); });
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -307,23 +319,25 @@ function renderTable() {
   $('visible-count').textContent = total.toLocaleString();
   $('jobs-body').innerHTML = slice.length ? slice.map((job) => {
     const score = scoreOf(job), work = job['Remote / Workplace'] || 'Not stated', remote = /remote/i.test(work);
+    const postedDate = esc(job['Posted Date'] || job.PostedDate || '—');
     const crawlDate = esc(job['Crawl Date'] || job.Date || '—');
     const isApplied = String(job['Applied Status'] || '').toLowerCase() === 'yes';
     return `<tr>
     <td class="bookmark-cell"><button class="bookmark ${saved.has(keyFor(job)) ? 'active' : ''}" data-save="${esc(keyFor(job))}" title="${saved.has(keyFor(job)) ? 'Remove from shortlist' : 'Add to shortlist'}">${saved.has(keyFor(job)) ? '★' : '☆'}</button></td>
+    <td><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Company || 'Not stated')}</span></td>
+    <td>${esc(job.Country || 'Global')}</td>
+    <td><span class="track">${postedDate}</span></td>
     <td><span class="track">${crawlDate}</span></td>
-    <td><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Country || '')}</span></td>
-    <td><span class="company">${esc(job.Company || 'Not stated')}</span></td>
-    <td class="location">${esc(job.Location || job.City || 'Not stated')}</td>
-    <td><span class="match-pill ${score ? `score-${score}` : 'score-none'}">${score ? score + '%' : '—'}</span></td>
     <td><span class="work-pill ${remote ? 'remote' : ''}">${esc(work)}</span></td>
+    <td><span class="match-pill ${score ? `score-${score}` : 'score-none'}">${score ? score + '%' : '—'}</span></td>
+    <td><span class="track">${saved.has(keyFor(job)) ? '★ Saved' : 'Queue'}</span></td>
     <td>
       <button class="applied-badge ${isApplied ? 'applied' : ''}" data-applied="${esc(keyFor(job))}">
         ${isApplied ? '✓ Applied' : 'Mark Applied'}
       </button>
     </td>
     <td class="open-cell">${job['Job URL'] ? `<a class="open-link" href="${esc(job['Job URL'])}" target="_blank" rel="noopener" title="Open job posting">↗</a>` : '—'}</td></tr>`;
-  }).join('') : `<tr><td colspan="9" class="empty">No opportunities match these filters.<br/><button class="clear-filters" id="empty-clear">Clear filters</button></td></tr>`;
+  }).join('') : `<tr><td colspan="10" class="empty">No opportunities match these filters.<br/><button class="clear-filters" id="empty-clear">Clear filters</button></td></tr>`;
 
   document.querySelectorAll('[data-save]').forEach((button) => button.onclick = () => { const keys = shortlist(), key = button.dataset.save; const adding = !keys.has(key); adding ? keys.add(key) : keys.delete(key); saveShortlist(keys); renderAll(); showToast(adding ? 'Added to your shortlist.' : 'Removed from your shortlist.'); });
 
@@ -499,7 +513,7 @@ async function handleClearData() {
 ['import-button','hero-import'].forEach((id) => $(id).onclick = () => $('file-input').click());
 $('file-input').onchange = (e) => { importFile(e.target.files[0]); e.target.value = ''; };
 $('search').oninput = (e) => { state.query = e.target.value; state.page = 1; renderAll(); };
-['country','score','workplace','recent','status'].forEach((id) => $(`${id}-filter`).onchange = (e) => { state.filters[id] = e.target.value; state.page = 1; renderAll(); });
+['country','score','workplace','posted','recent','status'].forEach((id) => $(`${id}-filter`).onchange = (e) => { state.filters[id] = e.target.value; state.page = 1; renderAll(); });
 $('filter-button').onclick = () => { const panel=$('filters-panel'); panel.hidden=!panel.hidden; }; $('clear-filters').onclick=clearFilters;
 document.querySelectorAll('th[data-sort]').forEach((th) => th.onclick = () => { const key=th.dataset.sort; state.sort={key,asc: state.sort.key===key ? !state.sort.asc : key !== 'Match Score'}; renderTable(); });
 $('previous-page').onclick=()=>{ if(state.page>1){state.page--;renderTable();} }; $('next-page').onclick=()=>{state.page++;renderTable();};

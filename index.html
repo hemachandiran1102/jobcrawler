@@ -82,14 +82,15 @@
             <h2>Opportunity queue <span id="visible-count">0</span></h2>
             <div class="toolbar">
               <div class="search-wrap"><span>⌕</span><input type="search" id="search" placeholder="Search by title, company, skills…" /></div>
-              <button class="filter-button" id="filter-button">Filter <span>0</span></button>
+              <button class="filter-button" id="filter-button">Filter <span id="filter-count">0</span></button>
             </div>
           </div>
           <div class="filters-panel" id="filters-panel" hidden>
             <label>Country<select id="country-filter"><option value="">All countries</option></select></label>
             <label>Match Score<select id="score-filter"><option value="">Any score</option><option value="85">85%+ Top match</option><option value="70">70%+ Good match</option></select></label>
             <label>Workplace<select id="workplace-filter"><option value="">Any workplace</option></select></label>
-            <label>Date Added<select id="recent-filter"><option value="">All time</option><option value="1">Past 24 hours</option><option value="7">Past 7 days</option><option value="30">Past 30 days</option></select></label>
+            <label>Job Posted<select id="posted-filter"><option value="">Any posted date</option><option value="1">Past 24 hours</option><option value="3">Past 3 days</option><option value="7">Past 7 days</option><option value="14">Past 14 days</option><option value="30">Past 30 days</option></select></label>
+            <label>Crawl Date<select id="recent-filter"><option value="">All crawl dates</option><option value="1">Past 24 hours</option><option value="7">Past 7 days</option><option value="30">Past 30 days</option></select></label>
             <label>Status<select id="status-filter"><option value="">All roles</option><option value="shortlisted">Shortlisted</option><option value="applied">Applied</option><option value="not-applied">Not Applied</option></select></label>
             <button class="clear-filters" id="clear-filters">Clear all</button>
           </div>
@@ -101,6 +102,7 @@
                   <th class="bookmark-cell"></th>
                   <th><button data-sort="Job Title">Role / Company ↕</button></th>
                   <th><button data-sort="Country">Country ↕</button></th>
+                  <th><button data-sort="Posted Date">Posted Date ↕</button></th>
                   <th><button data-sort="Crawl Date">Crawl Date ↕</button></th>
                   <th><button data-sort="Remote / Workplace">Workplace ↕</button></th>
                   <th><button data-sort="Match Score">Match ↕</button></th>
