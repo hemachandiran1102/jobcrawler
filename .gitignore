@@ -1,0 +1,32 @@
+# Security & Credentials (DO NOT COMMIT)
+.session.json
+.playwright-session/
+.playwright-session-*/
+*.session
+*.log
+.env
+
+# Word Documents & Excel Files (Binary / Large generated exports)
+*.docx
+*.xlsx
+*.xls
+*.doc
+LinkedIn_FULL_Crawl_All_Countries*.docx
+full_crawl_jobs_*.xlsx
+full_crawl_jobs.xlsx
+
+# Timestamped CSV Exports (Keep only master full_crawl_jobs.csv)
+full_crawl_jobs_*.csv
+
+# Generated Run Folders & Temporary Files
+crawl_*/
+scratch/
+linkedin_search_debug.png
+
+# Python & System
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+Thumbs.db

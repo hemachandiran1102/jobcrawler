@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d1629" />
+    <title>Job Compass | Opportunity dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="#top" aria-label="Job Compass home"><span class="brand-mark">J</span><span>job<span>compass</span></span></a>
+        <nav class="nav" aria-label="Main navigation">
+          <a class="active" href="#top"><span>▦</span> Overview</a>
+          <a href="#roles"><span>⌕</span> Explore roles</a>
+          <a href="#shortlist"><span>★</span> Shortlist <b id="nav-shortlist">0</b></a>
+        </nav>
+        <div class="sidebar-bottom">
+          <button class="import-button sidebar-import" id="import-button"><span>＋</span> Import export</button>
+          <button class="clear-data-button" id="sheets-config-button" style="margin-top:8px;color:#9db7ff;border-color:#374a6a">📊 Google Sheets Settings</button>
+          <button class="clear-data-button" id="sheets-fetch-button" style="margin-top:6px;color:#dff482;border-color:#374a6a">📥 Fetch from Google Sheet</button>
+          <p class="stored-count" id="stored-count"></p>
+          <button class="clear-data-button" id="clear-data" style="display:none">Clear stored data</button>
+          <p>Decisions are saved privately in this browser.</p>
+        </div>
+      </aside>
+
+      <main id="top">
+        <header class="topbar">
+          <button class="mobile-menu" id="mobile-menu" aria-label="Open navigation">☰</button>
+          <div class="crumb"><span>JOB SEARCH</span><i>/</i><strong>OPPORTUNITY BOARD</strong></div>
+          <div class="top-actions">
+            <span class="saved-state"><i></i> Auto-saved</span>
+            <button class="icon-button" id="theme-button" aria-label="Toggle theme">◐</button>
+          </div>
+        </header>
+
+        <section class="hero">
+          <div>
+            <p class="eyebrow">YOUR JOB SEARCH, ORGANISED</p>
+            <h1>Find the role worth<br /><em>your next move.</em></h1>
+            <p class="hero-copy" id="dataset-summary">Loading your job export…</p>
+          </div>
+          <div class="hero-actions">
+            <button class="import-button" id="hero-import"><span>＋</span> Import new export</button>
+            <label class="view-toggle" aria-label="Display mode">
+              <button class="active" id="table-view-button" title="Table view">☷</button><button id="compact-view-button" title="Compact view">▤</button>
+            </label>
+          </div>
+        </section>
+
+        <section class="metrics" aria-label="Dashboard metrics">
+          <article><p>Total opportunities</p><strong id="metric-total">—</strong><span id="metric-total-note">Importing…</span></article>
+          <article><p>High match roles</p><strong id="metric-high-match">—</strong><span>Score of 85% or more</span></article>
+          <article><p>Shortlisted</p><strong id="metric-shortlisted">—</strong><span id="metric-shortlist-note">Roles you saved</span></article>
+          <article><p>Countries covered</p><strong id="metric-countries">—</strong><span id="metric-country-note">Across your export</span></article>
+        </section>
+
+        <section class="insight-grid" aria-label="Job market insights">
+          <article class="chart-card">
+            <div class="section-heading"><div><p class="eyebrow">DISTRIBUTION</p><h2>Where the roles are</h2></div><span class="data-label">BY COUNTRY</span></div>
+            <div class="country-bars" id="country-bars"></div>
+          </article>
+          <article class="focus-card">
+            <p class="eyebrow">BEST FIT TODAY</p>
+            <div class="focus-score" id="focus-score">—<small>%</small></div>
+            <h2 id="focus-title">Finding your strongest match…</h2>
+            <p id="focus-company">Your top-scoring opportunity will appear here.</p>
+            <button id="view-best-fit">Review role <span>→</span></button>
+          </article>
+        </section>
+
+        <section class="roles-section" id="roles">
+          <div class="roles-header">
+            <div><p class="eyebrow">OPPORTUNITIES</p><h2>Explore roles <span id="visible-count">0</span></h2></div>
+            <div class="toolbar">
+              <div class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Search title, company or skill" /></div>
+              <button class="filter-button" id="filter-button">Filters <span id="filter-count">0</span>⌄</button>
+            </div>
+          </div>
+          <div class="active-filters" id="active-filters"></div>
+          <div class="filters-panel" id="filters-panel" hidden>
+            <label>Country<select id="country-filter"><option value="">All countries</option></select></label>
+            <label>Match score<select id="score-filter"><option value="">Any score</option><option value="85">85% and above</option><option value="100">100% only</option><option value="70">70% and above</option></select></label>
+            <label>Workplace<select id="workplace-filter"><option value="">Any workplace</option></select></label>
+            <label>Added<select id="recent-filter"><option value="">Any date</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select></label>
+            <label>Status<select id="status-filter"><option value="">All roles</option><option value="shortlisted">Shortlisted</option><option value="applied">Applied</option><option value="not-applied">Not applied</option></select></label>
+            <button class="clear-filters" id="clear-filters">Clear filters</button>
+          </div>
+
+          <div class="table-wrap" id="shortlist">
+            <table>
+              <thead><tr><th class="bookmark-cell"></th><th data-sort="Crawl Date">Crawl Date <button>↕</button></th><th data-sort="Job Title">Role <button>↕</button></th><th data-sort="Company">Company <button>↕</button></th><th data-sort="Location">Location <button>↕</button></th><th data-sort="Match Score">Match <button>↕</button></th><th>Workplace</th><th data-sort="Applied Status">Applied <button>↕</button></th><th class="open-cell"></th></tr></thead>
+              <tbody id="jobs-body"><tr><td colspan="9" class="empty">Loading your roles…</td></tr></tbody>
+            </table>
+          </div>
+          <footer class="table-footer"><p id="page-info">—</p><div class="pagination"><button id="previous-page" aria-label="Previous page">←</button><div id="page-buttons"></div><button id="next-page" aria-label="Next page">→</button></div></footer>
+        </section>
+      </main>
+    </div>
+
+    <!-- Google Sheets Settings Modal -->
+    <div class="modal-overlay" id="sheets-modal" hidden>
+      <div class="modal-card">
+        <header class="modal-header">
+          <h3>📊 Google Sheets Integration</h3>
+          <button id="close-sheets-modal" aria-label="Close modal">×</button>
+        </header>
+        <div class="modal-body">
+          <p>Sync all opportunity records and real-time "Applied" status to a single Google Spreadsheet.</p>
+          <label class="modal-label">Google Apps Script Webhook URL:
+            <input type="url" id="sheets-url-input" class="modal-input" placeholder="https://script.google.com/macros/s/.../exec" />
+          </label>
+          <div class="modal-actions">
+            <button id="save-sheets-config" class="import-button">Save Configuration</button>
+            <button id="sync-sheets-now" class="filter-button" style="padding:10px 16px">Sync All Jobs Now 🔄</button>
+          </div>
+          <p class="small-help">Copy script from <code>google_apps_script.js</code> into your Google Sheet to create a Webhook.</p>
+        </div>
+      </div>
+    </div>
+
+    <input id="file-input" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+    <div class="toast" id="toast" role="status"></div>
+    <div class="loading-overlay" id="loading-overlay" hidden>
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p id="loading-text">Importing…</p>
+      </div>
+    </div>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "webhook_url": "https://script.google.com/macros/s/AKfycbxTW2hZQRdGUgkUwH-Ast0K_2080xOSPbKw-gzOjFCmDLIJTiXwAJAwLiCDMoMDxAzL/exec",
+  "enabled": true,
+  "sync_on_crawl": true,
+  "sync_on_applied_toggle": true
+}
