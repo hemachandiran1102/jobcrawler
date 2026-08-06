@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hemachandiran Giri — AWS DevOps Engineer & Infrastructure Architect Resume</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --primary: #0f172a;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --text: #334155;
+      --text-light: #64748b;
+      --line: #e2e8f0;
+      --bg-subtle: #f8fafc;
+      --badge-bg: #eff6ff;
+      --badge-border: #bfdbfe;
+      --badge-text: #1e40af;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: #f1f5f9;
+      line-height: 1.5;
+      font-size: 13.5px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      background: #ffffff;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      padding: 28mm 22mm 24mm;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      position: relative;
+    }
+
+    @media print {
+      body { background: #ffffff; }
+      .page {
+        width: 100%;
+        margin: 0;
+        padding: 16mm 16mm 16mm;
+        box-shadow: none;
+      }
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; }
+    }
+
+    /* Print Toolbar */
+    .toolbar {
+      position: fixed;
+      top: 15px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+      transition: all 0.2s ease;
+    }
+    .btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
+
+    /* Header */
+    header {
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .title-sub {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-top: 4px;
+      letter-spacing: -0.2px;
+    }
+
+    .contact-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      margin-top: 12px;
+      font-size: 12.5px;
+      color: var(--text-light);
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .contact-item a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .contact-item a:hover { color: var(--accent); }
+
+    .cert-badge-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .cert-pill {
+      background: var(--badge-bg);
+      border: 1px solid var(--badge-border);
+      color: var(--badge-text);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Section Styling */
+    section {
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--primary);
+      border-bottom: 1.5px solid var(--line);
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .summary-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    /* Skills Grid */
+    .skills-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 6px 14px;
+      font-size: 12.5px;
+    }
+
+    .skill-cat {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .skill-val {
+      color: var(--text);
+    }
+
+    /* Experience Items */
+    .exp-item {
+      margin-bottom: 14px;
+    }
+
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 3px;
+    }
+
+    .exp-role {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .exp-company {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .exp-meta {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-light);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    ul.bullets {
+      padding-left: 16px;
+      margin-top: 4px;
+    }
+
+    ul.bullets li {
+      margin-bottom: 4px;
+      font-size: 12.5px;
+      color: var(--text);
+    }
+
+    ul.bullets li strong {
+      color: var(--primary);
+    }
+
+    /* Project Cards */
+    .project-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .project-card {
+      border: 1px solid var(--line);
+      background: var(--bg-subtle);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    .project-card h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .project-card p {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .tech-stack {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: var(--accent-dark);
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    /* Education & Certs Inline */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .edu-item h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .edu-item p {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar no-print">
+    <button class="btn" onclick="window.print()">🖨️ Print / Save to PDF</button>
+  </div>
+
+  <div class="page">
+    
+    <!-- HEADER -->
+    <header>
+      <div class="header-top">
+        <div>
+          <h1>Hemachandiran Giri</h1>
+          <div class="title-sub">AWS DevOps Engineer Professional & Infrastructure Architect</div>
+        </div>
+        <div class="cert-badge-row">
+          <span class="cert-pill">AWS DevOps Pro</span>
+          <span class="cert-pill">AWS Solutions Architect</span>
+        </div>
+      </div>
+
+      <div class="contact-bar">
+        <div class="contact-item">📧 <a href="mailto:hemachandiran1102@hotmail.com">hemachandiran1102@hotmail.com</a></div>
+        <div class="contact-item">📱 <a href="tel:+918754131660">+91 8754131660</a></div>
+        <div class="contact-item">🔗 <a href="https://github.com/hemachandiran1102" target="_blank">github.com/hemachandiran1102</a></div>
+        <div class="contact-item">📍 India (Open to Global Relocation & Remote)</div>
+      </div>
+    </header>
+
+    <!-- PROFESSIONAL SUMMARY -->
+    <section>
+      <div class="section-title">Professional Summary</div>
+      <p class="summary-text">
+        Certified <strong>AWS DevOps Engineer Professional</strong> with <strong>4+ years</strong> of hands-on experience designing, provisioning, and operating high-availability, cloud-native infrastructure on AWS. Expert in <strong>Infrastructure as Code (Terraform, CloudFormation, CDK)</strong>, container orchestration (<strong>Kubernetes EKS, ECS/Fargate</strong>), zero-downtime CI/CD automation, and multi-region cloud architectures. Proven track record of accelerating deployment speed by 40%, reducing AWS infrastructure costs by 35%, and managing production environments for startups and global enterprises.
+      </p>
+    </section>
+
+    <!-- TECHNICAL SKILLS -->
+    <section>
+      <div class="section-title">Technical Expertise</div>
+      <div class="skills-grid">
+        <div class="skill-cat">Cloud Platforms</div>
+        <div class="skill-val">AWS (EKS, ECS, Lambda, EC2, S3, RDS, Aurora, DynamoDB, SQS, SNS, CloudFront, Route 53, ALB, OpenSearch, Secrets Manager)</div>
+        
+        <div class="skill-cat">Infrastructure as Code</div>
+        <div class="skill-val">Terraform, AWS CloudFormation, AWS CDK, Pulumi, AWS SAM</div>
+
+        <div class="skill-cat">Containers & K8s</div>
+        <div class="skill-val">Kubernetes (EKS), Amazon ECS / Fargate, Docker, Helm, Container Security</div>
+
+        <div class="skill-cat">CI/CD & DevOps</div>
+        <div class="skill-val">GitHub Actions, Jenkins, GitLab CI/CD, Azure DevOps Pipelines, AWS CodePipeline, GitOps</div>
+
+        <div class="skill-cat">Automation & Security</div>
+        <div class="skill-val">n8n, Webhooks, Python, Shell/Bash, SonarQube, Veracode (SAST), SSM Parameter Store, IAM Security</div>
+
+        <div class="skill-cat">Observability & Net</div>
+        <div class="skill-val">Prometheus, Grafana, AWS CloudWatch, PagerDuty, Squadcast, VPC, NGINX, ALB/NLB, NetScaler</div>
+      </div>
+    </section>
+
+    <!-- PROFESSIONAL EXPERIENCE -->
+    <section>
+      <div class="section-title">Professional Experience</div>
+
+      <!-- Medzen Innovations -->
+      <div class="exp-item">
+        <div class="exp-header">
+          <div class="exp-role">Infrastructure Architect / Lead DevOps <span class="exp-company">— Medzen Innovations</span></div>
+          <div class="exp-meta">June 2025 – Present | Remote</div>
+        </div>
+        <ul class="bullets">
+          <li>Architected and delivered greenfield production AWS infrastructure (ap-south-1) via <strong>Terraform IaC</strong> for a fast-growing medical academic writing and clinical research platform.</li>
+          <li>Provisioned multi-node <strong>EKS & ECS Fargate</strong> clusters, Aurora Serverless v2, Redis Cache, ALB with ACM SSL, and CloudFront CDN, supporting seamless writer-client submission portals.</li>
+          <li>Built dual <strong>GitHub Actions CI/CD pipelines</strong> automating Terraform plan/apply and containerized backend deployment to ECR/ECS with auto-scaling triggers.</li>
+        </ul>
+      </div>
+
+      <!-- Amazon -->
+      <div class="exp-item">
+        <div class="exp-header">
+          <div class="exp-role">DevOps Engineer <span class="exp-company">— Amazon</span></div>
+          <div class="exp-meta">June 2024 – June 2025 | India</div>
+        </div>
+        <ul class="bullets">
+          <li>Orchestrated production microservices on <strong>Amazon EKS</strong> and <strong>Amazon ECS</strong>, implementing horizontal pod auto-scaling (HPA) and multi-AZ failover for critical customer-facing services.</li>
+          <li>Led infrastructure migration from Citrix NetScaler to <strong>Tardigrade Load Balancer</strong> using CloudFormation and CDK, achieving zero-downtime cut-over.</li>
+          <li>Executed regional cloud expansion from <strong>Ireland (eu-west-1) to Spain (eu-south-2)</strong>, provisioning SQS, DynamoDB, RDS, Lambda, and OpenSearch with zero data loss.</li>
+          <li>Engineered <strong>EventAggregatorLambda</strong> service in Python, automating ticket diagnostic comments across Weblab and MCM to reduce incident resolution MTTR by 25%.</li>
+        </ul>
+      </div>
+
+      <!-- Infiniti Research -->
+      <div class="exp-item">
+        <div class="exp-header">
+          <div class="exp-role">Server & Network Engineer (AWS DevOps) <span class="exp-company">— Infiniti Research</span></div>
+          <div class="exp-meta">May 2023 – May 2024 | India</div>
+        </div>
+        <ul class="bullets">
+          <li>Built end-to-end 3-tier serverless architectures leveraging AWS Lambda, API Gateway, Aurora Serverless v2, and SAM templates.</li>
+          <li>Automated enterprise CI/CD pipelines via <strong>CodePipeline, Azure DevOps, and EKS</strong>, reducing deployment cycle times by 30%.</li>
+          <li>Enforced DevSecOps practices integrating <strong>SonarQube and Veracode SAST audits</strong> directly into build pipelines to block security vulnerabilities prior to production releases.</li>
+        </ul>
+      </div>
+
+      <!-- Freelance DevOps -->
+      <div class="exp-item">
+        <div class="exp-header">
+          <div class="exp-role">Freelance Cloud DevOps Engineer <span class="exp-company">— Self-Employed</span></div>
+          <div class="exp-meta">Jan 2023 – May 2023 | Remote</div>
+        </div>
+        <ul class="bullets">
+          <li>Migrated high-traffic payment processing microservices from Elastic Beanstalk to <strong>AWS Fargate</strong>, cutting server management overhead and improving autoscaling responsiveness.</li>
+        </ul>
+      </div>
+
+      <!-- PondyBiz -->
+      <div class="exp-item">
+        <div class="exp-header">
+          <div class="exp-role">DevOps Engineer <span class="exp-company">— PondyBiz Technologies</span></div>
+          <div class="exp-meta">Jan 2022 – Dec 2022 | India</div>
+        </div>
+        <ul class="bullets">
+          <li>Configured multi-stage Jenkins and GitLab CI/CD pipelines for Node.js, Vue.js, and Ruby on Rails applications.</li>
+          <li>Designed automated S3-to-PostgreSQL ETL migration scripts and NGINX reverse proxies for high-throughput API gateway routing.</li>
+        </ul>
+      </div>
+
+    </section>
+
+    <!-- KEY HIGHLIGHT PROJECTS -->
+    <section>
+      <div class="section-title">International & Featured Projects</div>
+      <div class="project-grid">
+        
+        <div class="project-card">
+          <h4>Subscribe & Save (Amazon Global)</h4>
+          <p>Contributed to global high-traffic recurring shipment microservice supporting millions of active worldwide customer schedules.</p>
+          <div class="tech-stack">AWS Lambda · ECS · DynamoDB · CloudWatch</div>
+        </div>
+
+        <div class="project-card">
+          <h4>SmartCare Platform (Sweden)</h4>
+          <p>Managed AWS cloud infrastructure for digital healthcare platform processing medical, clinical, and pharmaceutical data under EU compliance.</p>
+          <div class="tech-stack">Terraform · AWS EKS · RDS · Compliance</div>
+        </div>
+
+        <div class="project-card">
+          <h4>Quantzig Analytics (USA / UK / Canada)</h4>
+          <p>Operated multi-region AWS infrastructure for SaaS analytics platform serving enterprise market research clients across 5 countries.</p>
+          <div class="tech-stack">Multi-Region AWS · CloudFront · SQS · Python</div>
+        </div>
+
+        <div class="project-card">
+          <h4>WhatsApp Business Automation</h4>
+          <p>Engineered self-hosted n8n workflow engine integrated with WhatsApp API for automated notification triggers and webhooks.</p>
+          <div class="tech-stack">n8n · Webhooks · Docker · API Gateway</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CERTIFICATIONS & EDUCATION -->
+    <section>
+      <div class="section-title">Certifications & Education</div>
+      <div class="two-col">
+        <div>
+          <div class="edu-item">
+            <h4>AWS Certified DevOps Engineer – Professional</h4>
+            <p>AWS Certification ID · Valid through Feb 2027</p>
+          </div>
+          <div class="edu-item" style="margin-top: 6px;">
+            <h4>AWS Certified Solutions Architect – Associate</h4>
+            <p>AWS Certification ID · Recertification in progress</p>
+          </div>
+        </div>
+        <div>
+          <div class="edu-item">
+            <h4>Bachelor of Technology (B.Tech)</h4>
+            <p>Electronics & Communication Engineering (2015 – 2019)</p>
+            <p style="font-size: 11px; color: var(--text-light);">Sri Manakula Vinayagar Engineering College</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>
