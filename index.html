@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="shell">
+    <div class="shell" id="app-shell" hidden>
       <aside class="sidebar">
         <a class="brand" href="#top" aria-label="Job Compass home"><span class="brand-mark">J</span><span>job<span>compass</span></span></a>
         <nav class="nav" aria-label="Main navigation">
@@ -118,7 +118,7 @@
     </div>
 
     <!-- Login & Authentication Gate Modal -->
-    <div class="auth-overlay" id="auth-overlay" hidden>
+    <div class="auth-overlay" id="auth-overlay">
       <div class="auth-card">
         <div class="auth-header">
           <div class="auth-brand"><span class="brand-mark">J</span><span>job<span>compass</span></span></div>
