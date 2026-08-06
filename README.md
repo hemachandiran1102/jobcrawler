@@ -97,10 +97,11 @@ python full_crawl_to_word.py --max-per-keyword 50
 
 ### 4. Using the Dashboard (`index.html`)
 
-1. Open [`index.html`](file:///c:/Users/hemac/Desktop/JobCrawler/index.html) in any modern browser.
-2. **Search & Filter**: Filter opportunities by Country, Match Score, Workplace, Date Added, or Applied Status.
-3. **Mark Applied**: Click **Mark Applied** on any job row. The status updates locally in IndexedDB and syncs instantly to your Google Spreadsheet.
-4. **Fetch / Pull**: Click **📥 Fetch from Google Sheet** in the sidebar to load the latest records from Google Sheets on any device.
+1. Open [`index.html`](file:///c:/Users/hemac/Desktop/JobCrawler/index.html) in any modern browser or visit your GitHub Pages site.
+2. **🔐 Master Password Login**: Enter your Master Password (`JobCompass2026!`) to unlock the board. Unauthenticated visitors cannot view your job queue or metrics.
+3. **Search & Filter**: Filter opportunities by Country, Match Score, Workplace, Date Added, or Applied Status.
+4. **Mark Applied**: Click **Mark Applied** on any job row. The status updates locally in IndexedDB and syncs instantly to your Google Spreadsheet.
+5. **Fetch / Pull**: Click **📥 Fetch from Google Sheet** in the sidebar to load the latest records from Google Sheets on any device.
 
 ---
 
