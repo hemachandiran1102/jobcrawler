@@ -607,6 +607,157 @@ async function fetchJobsFromGoogleSheet(silent = false) {
   return false;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   AUTHENTICATION & SECURITY LAYER (Web Crypto API SHA-256)
+   ══════════════════════════════════════════════════════════════════════ */
+
+const AUTH_HASH_KEY = 'job-compass-auth-hash';
+const AUTH_SALT_KEY = 'job-compass-auth-salt';
+const AUTH_SESSION_KEY = 'job-compass-auth-active';
+
+/** Hash password with salt using Web Crypto API SHA-256 */
+async function hashPassword(password, salt) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + '::' + salt);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Generate a random salt string */
+function generateSalt() {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Check if user is currently authenticated */
+function isAuthActive() {
+  const storedHash = localStorage.getItem(AUTH_HASH_KEY);
+  if (!storedHash) return false;
+  return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+}
+
+/** Show authentication modal */
+function showAuthModal() {
+  const storedHash = localStorage.getItem(AUTH_HASH_KEY);
+  const isFirstTime = !storedHash;
+
+  if ($('auth-overlay')) $('auth-overlay').hidden = false;
+  if ($('auth-error')) $('auth-error').hidden = true;
+  if ($('auth-password')) $('auth-password').value = '';
+  if ($('auth-confirm-password')) $('auth-confirm-password').value = '';
+
+  if (isFirstTime) {
+    if ($('auth-title')) $('auth-title').textContent = '🔐 Setup Master Password';
+    if ($('auth-subtitle')) $('auth-subtitle').textContent = 'Create a master password to encrypt and secure your job board access.';
+    if ($('auth-submit-btn')) $('auth-submit-btn').textContent = 'Set Password & Unlock →';
+    if ($('auth-confirm-wrapper')) $('auth-confirm-wrapper').hidden = false;
+    if ($('password-strength-bar')) $('password-strength-bar').hidden = false;
+  } else {
+    if ($('auth-title')) $('auth-title').textContent = '🔐 Protected Access';
+    if ($('auth-subtitle')) $('auth-subtitle').textContent = 'Enter your master password to unlock your job board.';
+    if ($('auth-submit-btn')) $('auth-submit-btn').textContent = 'Unlock Dashboard →';
+    if ($('auth-confirm-wrapper')) $('auth-confirm-wrapper').hidden = true;
+    if ($('password-strength-bar')) $('password-strength-bar').hidden = true;
+  }
+}
+
+/** Lock dashboard session */
+function lockDashboard() {
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  showAuthModal();
+  showToast('Dashboard session locked.');
+}
+
+/** Initialize Auth Listeners */
+function initAuth() {
+  const toggleBtn = $('toggle-auth-password');
+  if (toggleBtn) {
+    toggleBtn.onclick = () => {
+      const input = $('auth-password');
+      if (input.type === 'password') {
+        input.type = 'text';
+        toggleBtn.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        toggleBtn.textContent = '👁️';
+      }
+    };
+  }
+
+  const passInput = $('auth-password');
+  if (passInput) {
+    passInput.oninput = () => {
+      const val = passInput.value;
+      const bar = $('password-strength-bar');
+      if (!bar || bar.hidden) return;
+      
+      let score = 0;
+      if (val.length >= 8) score++;
+      if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+      if (/[0-9]/.test(val) || /[^A-Za-z0-9]/.test(val)) score++;
+
+      bar.className = 'strength-bar ' + (score === 1 ? 'weak' : score === 2 ? 'medium' : score >= 3 ? 'strong' : '');
+    };
+  }
+
+  const authForm = $('auth-form');
+  if (authForm) {
+    authForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const password = ($('auth-password').value || '').trim();
+      const confirmPass = ($('auth-confirm-password') ? $('auth-confirm-password').value : '').trim();
+      const storedHash = localStorage.getItem(AUTH_HASH_KEY);
+      const isFirstTime = !storedHash;
+
+      if (!password) return;
+
+      if (isFirstTime) {
+        if (password.length < 6) {
+          $('auth-error').textContent = 'Password must be at least 6 characters long.';
+          $('auth-error').hidden = false;
+          return;
+        }
+        if (password !== confirmPass) {
+          $('auth-error').textContent = 'Passwords do not match. Please try again.';
+          $('auth-error').hidden = false;
+          return;
+        }
+
+        const salt = generateSalt();
+        const hash = await hashPassword(password, salt);
+        localStorage.setItem(AUTH_HASH_KEY, hash);
+        localStorage.setItem(AUTH_SALT_KEY, salt);
+        sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+        $('auth-overlay').hidden = true;
+        showToast('Master password set! Dashboard unlocked.');
+        initDashboardData();
+        return;
+      }
+
+      // Existing login check
+      const salt = localStorage.getItem(AUTH_SALT_KEY) || '';
+      const computedHash = await hashPassword(password, salt);
+
+      if (computedHash === storedHash) {
+        sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+        $('auth-overlay').hidden = true;
+        showToast('Dashboard unlocked!');
+        initDashboardData();
+      } else {
+        $('auth-error').textContent = 'Incorrect master password. Please try again.';
+        $('auth-error').hidden = false;
+      }
+    };
+  }
+
+  const lockBtn = $('lock-dashboard-btn');
+  if (lockBtn) lockBtn.onclick = lockDashboard;
+  const lockHeaderBtn = $('lock-header-btn');
+  if (lockHeaderBtn) lockHeaderBtn.onclick = lockDashboard;
+}
+
 // Google Sheets Modal Event Listeners
 $('sheets-config-button').onclick = () => {
   $('sheets-url-input').value = getSheetsWebhookUrl();
@@ -626,8 +777,8 @@ $('sync-sheets-now').onclick = () => {
   syncAllJobsToGoogleSheet();
 };
 
-// ── Startup: load from Google Sheets first, then IndexedDB, then CSV ──
-(async function init() {
+// ── Startup: Authentication Gate check & Data Loading ──
+async function initDashboardData() {
   // Load default Webhook URL from config file if not set in localStorage
   try {
     const cfgResp = await fetch('google_sheets_config.json');
@@ -673,4 +824,13 @@ $('sync-sheets-now').onclick = () => {
   $('dataset-summary').textContent = 'Import your CSV or Excel job export to start ranking and shortlisting roles.';
   $('jobs-body').innerHTML = '<tr><td colspan="9" class="empty">Your dashboard is ready. Import a CSV or Excel file to begin.</td></tr>';
   updateStoredCount();
+}
+
+(function init() {
+  initAuth();
+  if (!isAuthActive()) {
+    showAuthModal();
+  } else {
+    initDashboardData();
+  }
 })();

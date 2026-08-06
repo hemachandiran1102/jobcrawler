@@ -23,6 +23,7 @@
           <button class="import-button sidebar-import" id="import-button"><span>＋</span> Import export</button>
           <button class="clear-data-button" id="sheets-config-button" style="margin-top:8px;color:#9db7ff;border-color:#374a6a">📊 Google Sheets Settings</button>
           <button class="clear-data-button" id="sheets-fetch-button" style="margin-top:6px;color:#dff482;border-color:#374a6a">📥 Fetch from Google Sheet</button>
+          <button class="clear-data-button" id="lock-dashboard-btn" style="margin-top:6px;color:#a5b5d2;border-color:#374a6a">🔒 Lock Dashboard</button>
           <p class="stored-count" id="stored-count"></p>
           <button class="clear-data-button" id="clear-data" style="display:none">Clear stored data</button>
           <p>Decisions are saved privately in this browser.</p>
@@ -35,6 +36,7 @@
           <div class="crumb"><span>JOB SEARCH</span><i>/</i><strong>OPPORTUNITY BOARD</strong></div>
           <div class="top-actions">
             <span class="saved-state"><i></i> Auto-saved</span>
+            <button class="icon-button" id="lock-header-btn" title="Lock Dashboard Session">🔒</button>
             <button class="icon-button" id="theme-button" aria-label="Toggle theme">◐</button>
           </div>
         </header>
@@ -48,59 +50,101 @@
           <div class="hero-actions">
             <button class="import-button" id="hero-import"><span>＋</span> Import new export</button>
             <label class="view-toggle" aria-label="Display mode">
-              <button class="active" id="table-view-button" title="Table view">☷</button><button id="compact-view-button" title="Compact view">▤</button>
+              <button class="active" id="table-view-button" aria-label="Table view">☰</button>
+              <button id="compact-view-button" aria-label="Compact view">☷</button>
             </label>
           </div>
         </section>
 
-        <section class="metrics" aria-label="Dashboard metrics">
-          <article><p>Total opportunities</p><strong id="metric-total">—</strong><span id="metric-total-note">Importing…</span></article>
-          <article><p>High match roles</p><strong id="metric-high-match">—</strong><span>Score of 85% or more</span></article>
-          <article><p>Shortlisted</p><strong id="metric-shortlisted">—</strong><span id="metric-shortlist-note">Roles you saved</span></article>
-          <article><p>Countries covered</p><strong id="metric-countries">—</strong><span id="metric-country-note">Across your export</span></article>
+        <section class="metrics">
+          <article><p>Total roles</p><strong id="metric-total">0</strong><span id="metric-total-note">0 companies represented</span></article>
+          <article><p>High match (≥85%)</p><strong id="metric-high-match">0</strong><span>Top fit for your background</span></article>
+          <article><p>Shortlisted</p><strong id="metric-shortlisted">0</strong><span id="metric-shortlist-note">Your roles to revisit</span></article>
+          <article><p>Target markets</p><strong id="metric-countries">0</strong><span id="metric-country-note">Across primary focus areas</span></article>
         </section>
 
-        <section class="insight-grid" aria-label="Job market insights">
+        <section class="insight-grid">
           <article class="chart-card">
-            <div class="section-heading"><div><p class="eyebrow">DISTRIBUTION</p><h2>Where the roles are</h2></div><span class="data-label">BY COUNTRY</span></div>
+            <div class="section-heading"><h2>Roles by target country</h2><span class="data-label">TOP MARKET FOCUS</span></div>
             <div class="country-bars" id="country-bars"></div>
           </article>
           <article class="focus-card">
-            <p class="eyebrow">BEST FIT TODAY</p>
-            <div class="focus-score" id="focus-score">—<small>%</small></div>
-            <h2 id="focus-title">Finding your strongest match…</h2>
-            <p id="focus-company">Your top-scoring opportunity will appear here.</p>
-            <button id="view-best-fit">Review role <span>→</span></button>
+            <p class="eyebrow">FEATURED FIT</p>
+            <div class="focus-score" id="focus-score">0<small>%</small></div>
+            <h2 id="focus-title">No role selected</h2>
+            <p id="focus-company">Import export data to surface standout opportunities.</p>
+            <button id="view-best-fit">Focus top role <span>→</span></button>
           </article>
         </section>
 
         <section class="roles-section" id="roles">
           <div class="roles-header">
-            <div><p class="eyebrow">OPPORTUNITIES</p><h2>Explore roles <span id="visible-count">0</span></h2></div>
+            <h2>Opportunity queue <span id="visible-count">0</span></h2>
             <div class="toolbar">
-              <div class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Search title, company or skill" /></div>
-              <button class="filter-button" id="filter-button">Filters <span id="filter-count">0</span>⌄</button>
+              <div class="search-wrap"><span>⌕</span><input type="search" id="search" placeholder="Search by title, company, skills…" /></div>
+              <button class="filter-button" id="filter-button">Filter <span>0</span></button>
             </div>
           </div>
-          <div class="active-filters" id="active-filters"></div>
           <div class="filters-panel" id="filters-panel" hidden>
             <label>Country<select id="country-filter"><option value="">All countries</option></select></label>
-            <label>Match score<select id="score-filter"><option value="">Any score</option><option value="85">85% and above</option><option value="100">100% only</option><option value="70">70% and above</option></select></label>
+            <label>Match Score<select id="score-filter"><option value="">Any score</option><option value="85">85%+ Top match</option><option value="70">70%+ Good match</option></select></label>
             <label>Workplace<select id="workplace-filter"><option value="">Any workplace</option></select></label>
-            <label>Added<select id="recent-filter"><option value="">Any date</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select></label>
-            <label>Status<select id="status-filter"><option value="">All roles</option><option value="shortlisted">Shortlisted</option><option value="applied">Applied</option><option value="not-applied">Not applied</option></select></label>
-            <button class="clear-filters" id="clear-filters">Clear filters</button>
+            <label>Date Added<select id="recent-filter"><option value="">All time</option><option value="1">Past 24 hours</option><option value="7">Past 7 days</option><option value="30">Past 30 days</option></select></label>
+            <label>Status<select id="status-filter"><option value="">All roles</option><option value="shortlisted">Shortlisted</option><option value="applied">Applied</option><option value="not-applied">Not Applied</option></select></label>
+            <button class="clear-filters" id="clear-filters">Clear all</button>
           </div>
-
-          <div class="table-wrap" id="shortlist">
+          <div class="active-filters" id="active-filters"></div>
+          <div class="table-wrap" id="table-wrap">
             <table>
-              <thead><tr><th class="bookmark-cell"></th><th data-sort="Crawl Date">Crawl Date <button>↕</button></th><th data-sort="Job Title">Role <button>↕</button></th><th data-sort="Company">Company <button>↕</button></th><th data-sort="Location">Location <button>↕</button></th><th data-sort="Match Score">Match <button>↕</button></th><th>Workplace</th><th data-sort="Applied Status">Applied <button>↕</button></th><th class="open-cell"></th></tr></thead>
-              <tbody id="jobs-body"><tr><td colspan="9" class="empty">Loading your roles…</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th class="bookmark-cell"></th>
+                  <th><button data-sort="Job Title">Role / Company ↕</button></th>
+                  <th><button data-sort="Country">Country ↕</button></th>
+                  <th><button data-sort="Crawl Date">Crawl Date ↕</button></th>
+                  <th><button data-sort="Remote / Workplace">Workplace ↕</button></th>
+                  <th><button data-sort="Match Score">Match ↕</button></th>
+                  <th>Status</th>
+                  <th>Applied</th>
+                  <th class="open-cell">Link</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-body"></tbody>
             </table>
           </div>
           <footer class="table-footer"><p id="page-info">—</p><div class="pagination"><button id="previous-page" aria-label="Previous page">←</button><div id="page-buttons"></div><button id="next-page" aria-label="Next page">→</button></div></footer>
         </section>
       </main>
+    </div>
+
+    <!-- Login & Authentication Gate Modal -->
+    <div class="auth-overlay" id="auth-overlay" hidden>
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-brand"><span class="brand-mark">J</span><span>job<span>compass</span></span></div>
+          <h2 id="auth-title">🔐 Protected Access</h2>
+          <p id="auth-subtitle">Enter your master password to unlock your job board.</p>
+        </div>
+        <form id="auth-form" onsubmit="return false;">
+          <div class="auth-field">
+            <label for="auth-password">Master Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="auth-password" class="modal-input" placeholder="••••••••••••" required autocomplete="current-password" />
+              <button type="button" id="toggle-auth-password" class="password-toggle-btn" aria-label="Toggle password visibility">👁️</button>
+            </div>
+            <div id="password-strength-bar" class="strength-bar" hidden><div id="strength-fill"></div></div>
+          </div>
+          <div class="auth-field" id="auth-confirm-wrapper" hidden>
+            <label for="auth-confirm-password">Confirm Master Password</label>
+            <input type="password" id="auth-confirm-password" class="modal-input" placeholder="••••••••••••" autocomplete="new-password" />
+          </div>
+          <p class="auth-error" id="auth-error" hidden></p>
+          <button type="submit" id="auth-submit-btn" class="auth-submit-btn">Unlock Dashboard →</button>
+        </form>
+        <div class="auth-footer">
+          <span>Encrypted with SHA-256 Web Crypto API · Private & Secure</span>
+        </div>
+      </div>
     </div>
 
     <!-- Google Sheets Settings Modal -->

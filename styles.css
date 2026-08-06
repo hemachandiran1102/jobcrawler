@@ -40,3 +40,27 @@ body.dark { --ink:#edf2ff; --muted:#a9b5cb; --line:#273451; --canvas:#111a2d; --
 body.dark .modal-card { background: #19243a; color: #dae3f5; border-color: #273451; }
 body.dark .modal-label { color: #edf2ff; }
 body.dark .modal-input { background: #111a2d; border-color: #273451; color: #ffffff; }
+
+/* ── Authentication & Login Gate Styles ── */
+.auth-overlay { position: fixed; z-index: 999; inset: 0; background: rgba(8, 14, 28, 0.88); backdrop-filter: blur(12px); display: grid; place-items: center; padding: 20px; }
+.auth-card { background: #141f36; width: 100%; max-width: 440px; border-radius: 16px; border: 1px solid #273754; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4), 0 0 30px rgba(157, 183, 255, 0.08); padding: 36px 32px 28px; color: #ffffff; text-align: left; }
+.auth-header { margin-bottom: 24px; text-align: center; }
+.auth-brand { display: flex; gap: 8px; justify-content: center; align-items: center; font-size: 20px; font-weight: 800; margin-bottom: 16px; letter-spacing: -0.5px; }
+.auth-header h2 { margin: 0 0 8px; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.8px; }
+.auth-header p { margin: 0; font-size: 13px; color: #9bb0d4; line-height: 1.5; }
+.auth-field { margin-bottom: 18px; display: grid; gap: 8px; }
+.auth-field label { font-size: 12px; font-weight: 700; color: #c3d4f2; }
+.password-wrapper { position: relative; display: flex; align-items: center; }
+.password-wrapper input { padding-right: 44px; background: #0b1324; border: 1px solid #273754; color: #ffffff; font-size: 14px; border-radius: 8px; padding-top: 11px; padding-bottom: 11px; }
+.password-wrapper input:focus { border-color: #9db7ff; box-shadow: 0 0 0 3px rgba(157, 183, 255, 0.15); }
+.password-toggle-btn { position: absolute; right: 10px; border: 0; background: transparent; color: #8fa5cd; font-size: 16px; cursor: pointer; padding: 6px; }
+.strength-bar { height: 4px; background: #1e2c48; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.strength-bar div { height: 100%; width: 0%; transition: all 0.3s ease; border-radius: 4px; }
+.strength-bar.weak div { width: 33%; background: #ef4444; }
+.strength-bar.medium div { width: 66%; background: #f59e0b; }
+.strength-bar.strong div { width: 100%; background: #10b981; }
+.auth-error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; font-size: 12px; font-weight: 600; padding: 10px 14px; border-radius: 8px; margin: 0 0 16px; }
+.auth-submit-btn { width: 100%; padding: 13px; border: 0; background: var(--accent); color: #ffffff; font-weight: 800; font-size: 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 8px 20px rgba(233, 103, 68, 0.3); }
+.auth-submit-btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
+.auth-footer { margin-top: 24px; text-align: center; font-size: 11px; color: #6b82aa; border-top: 1px solid #1e2c48; padding-top: 16px; }
+
