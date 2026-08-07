@@ -85,6 +85,7 @@
               <button class="filter-button" id="filter-button">Filter <span id="filter-count">0</span></button>
             </div>
           </div>
+          <div class="date-tabs-bar" id="date-tabs-bar"></div>
           <div class="filters-panel" id="filters-panel" hidden>
             <label>Country<select id="country-filter"><option value="">All countries</option></select></label>
             <label>Match Score<select id="score-filter"><option value="">Any score</option><option value="85">85%+ Top match</option><option value="70">70%+ Good match</option></select></label>
@@ -99,15 +100,15 @@
             <table>
               <thead>
                 <tr>
-                  <th class="bookmark-cell"></th>
-                  <th><button data-sort="Job Title">Role / Company ↕</button></th>
-                  <th><button data-sort="Country">Country ↕</button></th>
-                  <th><button data-sort="Posted Date">Posted Date ↕</button></th>
-                  <th><button data-sort="Crawl Date">Crawl Date ↕</button></th>
-                  <th><button data-sort="Remote / Workplace">Workplace ↕</button></th>
-                  <th><button data-sort="Match Score">Match ↕</button></th>
-                  <th>Applied</th>
-                  <th class="open-cell">Link</th>
+                  <th class="bookmark-cell">★</th>
+                  <th class="col-role"><button data-sort="Job Title">Role / Company ↕</button></th>
+                  <th class="col-country"><button data-sort="Country">Country ↕</button></th>
+                  <th class="col-posted"><button data-sort="Posted Date">Posted Date ↕</button></th>
+                  <th class="col-crawl"><button data-sort="Crawl Date">Crawl Date ↕</button></th>
+                  <th class="col-workplace"><button data-sort="Remote / Workplace">Workplace ↕</button></th>
+                  <th class="col-match"><button data-sort="Match Score">Match ↕</button></th>
+                  <th class="col-applied">Applied</th>
+                  <th class="col-link">Link</th>
                 </tr>
               </thead>
               <tbody id="jobs-body"></tbody>

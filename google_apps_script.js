@@ -51,13 +51,50 @@ function setupSheet() {
     headerRange.setFontWeight('bold');
     sheet.setFrozenRows(1);
   }
-  return sheet;
+  return { ss: ss, sheet: sheet, headers: headers };
+}
+
+function syncDateTabs(ss, headers, values) {
+  try {
+    const dateGroups = new Map();
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      const rawDate = String(row[1] || '').trim();
+      const dateStr = rawDate.split('T')[0] || 'Unknown Date';
+      if (!dateGroups.has(dateStr)) dateGroups.set(dateStr, []);
+      dateGroups.get(dateStr).push(row);
+    }
+    
+    dateGroups.forEach((rows, dateStr) => {
+      if (!dateStr || dateStr.length < 5) return;
+      let dateSheet = ss.getSheetByName(dateStr);
+      if (!dateSheet) {
+        dateSheet = ss.insertSheet(dateStr);
+      } else {
+        dateSheet.clearContents();
+      }
+      
+      const sheetData = [headers, ...rows];
+      dateSheet.getRange(1, 1, sheetData.length, headers.length).setValues(sheetData);
+      
+      const headerRange = dateSheet.getRange(1, 1, 1, headers.length);
+      headerRange.setBackground('#1F4E79');
+      headerRange.setFontColor('#FFFFFF');
+      headerRange.setFontWeight('bold');
+      dateSheet.setFrozenRows(1);
+    });
+  } catch (e) {
+    Logger.log("Error syncing date tabs: " + e.toString());
+  }
 }
 
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
-    const sheet = setupSheet();
+    const setup = setupSheet();
+    const sheet = setup.sheet;
+    const ss = setup.ss;
+    const headers = setup.headers;
     
     // Action 1: Update single job applied status (from index.html UI)
     if (data.action === 'update_applied') {
@@ -117,7 +154,8 @@ function doPost(e) {
         
         const existingRowIdx = (url && urlMap.get(url)) ?? comboMap.get(comboKey);
         
-        const crawlDate = job['Crawl Date'] || job.Date || today;
+        const rawCrawlDate = job['Crawl Date'] || job.Date || today;
+        const crawlDate = String(rawCrawlDate).split('T')[0] || today;
         let appliedStatus = job['Applied Status'] || job.Applied || 'No';
         
         if (existingRowIdx !== undefined && existingRowIdx < existingValues.length) {
@@ -171,6 +209,10 @@ function doPost(e) {
         sheet.getRange(startRow, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
       }
       
+      // Maintain Date Tabs in spreadsheet automatically
+      const finalValues = sheet.getDataRange().getValues();
+      syncDateTabs(ss, headers, finalValues);
+      
       return responseJSON({ success: true, added: added, updated: updated, total: sheet.getLastRow() - 1 });
     }
     
@@ -197,7 +239,8 @@ function doPost(e) {
 function doGet(e) {
   if (e && e.parameter && e.parameter.action === 'get_jobs') {
     try {
-      const sheet = setupSheet();
+      const setup = setupSheet();
+      const sheet = setup.sheet;
       const existingValues = sheet.getDataRange().getValues();
       const headers = existingValues[0] || [];
       const jobs = [];
@@ -225,28 +268,11 @@ function doGet(e) {
     }
   }
 
-  let sheetUrl = '';
-  let sheetTitle = 'Job Compass Opportunities';
-  try {
-    const sheet = setupSheet();
-    const ss = sheet.getParent();
-    sheetUrl = ss.getUrl();
-    sheetTitle = ss.getName();
-  } catch (err) {}
-
-  return HtmlService.createHtmlOutput(
-    '<!DOCTYPE html><html><head><title>Job Compass Webhook Status</title></head>' +
-    '<body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;padding:40px;background:#0d1629;color:#ffffff;line-height:1.6;">' +
-    '<div style="max-width:550px;margin:auto;background:#17243a;padding:30px;border-radius:12px;border:1px solid #273451;box-shadow:0 10px 30px rgba(0,0,0,0.3);">' +
-    '<h2 style="margin:0 0 10px;color:#dff482;font-size:22px;">✅ Job Compass Webhook is Active</h2>' +
-    '<p style="color:#c5d0e6;margin:0 0 15px;">Your Google Apps Script Webhook is set up and ready to receive crawl data and real-time status updates.</p>' +
-    '<div style="background:#09101e;padding:14px;border-radius:8px;font-family:monospace;font-size:13px;color:#9db7ff;">' +
-    'Status: ONLINE<br>Spreadsheet: ' + sheetTitle + '<br>Target Tab: ' + SHEET_NAME + '<br>Mode: READ / WRITE (POST)' +
-    '</div>' +
-    (sheetUrl ? '<div style="margin-top:20px;"><a href="' + sheetUrl + '" target="_blank" style="display:inline-block;padding:12px 20px;background:#e96744;color:#ffffff;text-decoration:none;font-weight:bold;border-radius:6px;">📊 Open Spreadsheet in Google Sheets →</a></div>' : '') +
-    '<p style="font-size:12px;color:#8c99b0;margin-top:20px;">You can copy this Webhook URL into your Job Compass Dashboard or google_sheets_config.json file.</p>' +
-    '</div></body></html>'
-  );
+  return responseJSON({
+    name: "Job Compass Google Apps Script Webhook API",
+    status: "active",
+    spreadsheet_url: "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID + "/edit"
+  });
 }
 
 function responseJSON(obj) {

@@ -1490,59 +1490,79 @@ def generate_word(jobs_df: pd.DataFrame):
 # ══════════════════════════════════════════════════════════════════════
 
 def save_excel(df: pd.DataFrame):
-    if not HAS_EXCEL:
+    if not HAS_EXCEL or df.empty:
         return
-    log("\nGenerating Excel …")
+    log("\nGenerating multi-sheet Excel (Master + Date Tabs) …")
     wb = openpyxl.Workbook()
-    ws = wb.active; ws.title = "All Jobs"
+    if "Sheet" in wb.sheetnames:
+        wb.remove(wb["Sheet"])
 
-    cols = ["#","Date","Country","Flag","Tier","City","City Openings","Location","Company","Job Title",
-            "Search Keyword","Posted Date","Easy Apply","Remote / Workplace","Match Score",
-            "Visa Sponsorship","Skills","Resume","Applied","Notes","Job URL"]
+    cols = ["#","Crawl Date","Country","Flag","Tier","City","City Openings",
+            "Location","Company","Job Title","Search Keyword","Posted Date",
+            "Easy Apply","Remote / Workplace","Match Score","Visa Sponsorship",
+            "Skills","Resume","Applied","Notes","Job URL"]
+
     hf   = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
     hfnt = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
     thin = Border(left=Side(style="thin"), right=Side(style="thin"),
                   top=Side(style="thin"),  bottom=Side(style="thin"))
-
-    for ci, col in enumerate(cols, 1):
-        c = ws.cell(row=1, column=ci, value=col)
-        c.fill = hf; c.font = hfnt
-        c.alignment = Alignment(horizontal="center", vertical="center")
-        c.border = thin
-
     vf   = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
-    vcol = "Visa Sponsorship Mentioned"
 
-    for ri, (_, job) in enumerate(df.iterrows(), 2):
-        vv = str(job.get(vcol, "No"))
-        vals = [ri-1, str(job.get("Crawl Date", job.get("Date", ""))), str(job.get("Country","")),
+    def populate_sheet(ws, sub_df):
+        for ci, col in enumerate(cols, 1):
+            c = ws.cell(row=1, column=ci, value=col)
+            c.fill = hf; c.font = hfnt
+            c.alignment = Alignment(horizontal="center", vertical="center")
+            c.border = thin
+
+        for ri, (_, job) in enumerate(sub_df.iterrows(), 2):
+            vv = str(job.get("Visa Sponsorship Mentioned", "No"))
+            vals = [
+                ri-1, str(job.get("Crawl Date", job.get("Date", ""))), str(job.get("Country","")),
                 str(job.get("Flag","")), str(job.get("Tier","")),
                 str(job.get("City","")), str(job.get("City Openings","")),
                 str(job.get("Location","")), str(job.get("Company","")),
                 str(job.get("Job Title","")), str(job.get("Search Keyword","")),
-                str(job.get("Posted Date","Past 3 weeks")),
-                str(job.get("Easy Apply","No")),
+                str(job.get("Posted Date","")), str(job.get("Easy Apply","No")),
                 str(job.get("Remote / Workplace","On-site / Hybrid")),
-                str(job.get("Match Score","85%")),
-                vv, str(job.get("Required Skills","")),
-                str(job.get("Resume File Path","")),
-                str(job.get("Applied Status","No")),
-                str(job.get("Notes","")),
-                str(job.get("Job URL",""))]
-        for ci, val in enumerate(vals, 1):
-            c = ws.cell(row=ri, column=ci, value=val)
-            c.font = Font(name="Calibri", size=9); c.border = thin
-            if ci == 16 and vv.lower() == "yes":
-                c.fill = vf
+                str(job.get("Match Score","85%")), vv,
+                str(job.get("Required Skills","")), str(job.get("Resume File Path","")),
+                str(job.get("Applied Status","No")), str(job.get("Notes","")),
+                str(job.get("Job URL",""))
+            ]
+            for ci, val in enumerate(vals, 1):
+                c = ws.cell(row=ri, column=ci, value=val)
+                c.font = Font(name="Calibri", size=9); c.border = thin
+                if ci == 16 and vv.lower() == "yes":
+                    c.fill = vf
 
-    for i, w in enumerate([4,12,14,5,5,16,14,20,22,32,20,16,12,18,12,15,30,45,8,20,55], 1):
-        ws.column_dimensions[get_column_letter(i)].width = w
-    ws.freeze_panes = "A2"; ws.auto_filter.ref = ws.dimensions
+        for i, w in enumerate([4,12,14,5,5,16,14,20,22,32,20,16,12,18,12,15,30,45,8,20,55], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
+        if len(sub_df) > 0:
+            ws.auto_filter.ref = ws.dimensions
+
+    # 1. Master Sheet "All Jobs"
+    ws_all = wb.create_sheet(title="All Jobs")
+    populate_sheet(ws_all, df)
+
+    # 2. Date-based sheets
+    date_col = "Crawl Date" if "Crawl Date" in df.columns else ("Date" if "Date" in df.columns else None)
+    if date_col:
+        unique_dates = sorted(df[date_col].dropna().astype(str).str.split("T").str[0].unique(), reverse=True)
+        for date_str in unique_dates:
+            if not date_str or len(date_str) < 5 or date_str == "nan":
+                continue
+            sub = df[df[date_col].astype(str).str.startswith(date_str)]
+            if not sub.empty:
+                ws_date = wb.create_sheet(title=date_str[:31])
+                populate_sheet(ws_date, sub)
 
     try:
+        EXCEL_PATH.parent.mkdir(parents=True, exist_ok=True)
         wb.save(MASTER_EXCEL_PATH)
         wb.save(EXCEL_PATH)
-        log(f"Master Excel saved → {MASTER_EXCEL_PATH}", "OK")
+        log(f"Master Excel saved → {MASTER_EXCEL_PATH} (All Jobs + Date Tabs)", "OK")
         log(f"Run Excel archived → {EXCEL_PATH}", "OK")
     except PermissionError:
         alt = EXCEL_PATH.parent / f"full_crawl_{int(time.time())}.xlsx"

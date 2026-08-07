@@ -196,10 +196,46 @@ function countBy(list, field) { return [...list.reduce((m, x) => m.set(x[field] 
 function titleCase(value) { return value || 'Not specified'; }
 function roleText(job) { return [job['Job Title'], job.Company, job.Location, job['Required Skills'], job['Search Keyword']].join(' ').toLowerCase(); }
 
+function renderDateTabs() {
+  const container = $('date-tabs-bar');
+  if (!container) return;
+
+  const dateCounts = new Map();
+  let totalCount = 0;
+
+  state.jobs.forEach((job) => {
+    totalCount++;
+    const dt = formatDisplayDate(crawlDateOf(job) || postedDateOf(job));
+    if (dt && dt !== '—') {
+      dateCounts.set(dt, (dateCounts.get(dt) || 0) + 1);
+    }
+  });
+
+  const sortedDates = [...dateCounts.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  
+  let html = `<button class="date-tab ${state.selectedDate === 'all' || !state.selectedDate ? 'active' : ''}" data-date="all">All Dates (${totalCount.toLocaleString()})</button>`;
+  
+  sortedDates.forEach(([dateStr, count]) => {
+    const isActive = state.selectedDate === dateStr;
+    html += `<button class="date-tab ${isActive ? 'active' : ''}" data-date="${esc(dateStr)}">📅 ${esc(dateStr)} (${count.toLocaleString()})</button>`;
+  });
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('[data-date]').forEach((btn) => {
+    btn.onclick = () => {
+      state.selectedDate = btn.dataset.date;
+      state.page = 1;
+      renderDateTabs();
+      renderAll();
+    };
+  });
+}
+
 function loadJobs(jobs, sourceLabel = 'your export') {
   state.jobs = jobs; state.page = 1;
   state.filters = { country: '', score: '', workplace: '', recent: '', status: '' }; state.query = ''; $('search').value = '';
-  populateFilters(); renderAll(); updateStoredCount();
+  populateFilters(); renderDateTabs(); renderAll(); updateStoredCount();
   showToast(`Loaded ${jobs.length.toLocaleString()} opportunities from ${sourceLabel}.`);
 }
 
@@ -223,12 +259,15 @@ function applyFilters() {
 
     const isCrawlRecent = !f.recent || (crawlAgeInDays !== null && crawlAgeInDays <= Number(f.recent));
     const isPostedRecent = !f.posted || (postedAgeInDays !== null && postedAgeInDays <= Number(f.posted));
+    
+    const displayCrawlDate = formatDisplayDate(crawlDt || postedDt);
+    const matchSelectedDate = !state.selectedDate || state.selectedDate === 'all' || displayCrawlDate === state.selectedDate;
 
     return (!q || roleText(job).includes(q)) &&
            (!f.country || job.Country === f.country) &&
            (!f.workplace || job['Remote / Workplace'] === f.workplace) &&
            (!f.score || scoreOf(job) >= Number(f.score)) &&
-           isCrawlRecent && isPostedRecent &&
+           isCrawlRecent && isPostedRecent && matchSelectedDate &&
            (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && applied === 'yes') || (f.status === 'not-applied' && applied !== 'yes'));
   });
 
@@ -386,18 +425,18 @@ function renderTable() {
     const isApplied = String(job['Applied Status'] || '').toLowerCase() === 'yes';
     return `<tr>
     <td class="bookmark-cell"><button class="bookmark ${saved.has(keyFor(job)) ? 'active' : ''}" data-save="${esc(keyFor(job))}" title="${saved.has(keyFor(job)) ? 'Remove from shortlist' : 'Add to shortlist'}">${saved.has(keyFor(job)) ? '★' : '☆'}</button></td>
-    <td><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Company || 'Not stated')}</span></td>
-    <td>${esc(job.Country || 'Global')}</td>
-    <td><span class="track">${esc(postedDate)}</span></td>
-    <td><span class="track">${esc(crawlDate)}</span></td>
-    <td><span class="work-pill ${remote ? 'remote' : ''}">${esc(work)}</span></td>
-    <td><span class="match-pill ${score ? `score-${score}` : 'score-none'}">${score ? score + '%' : '—'}</span></td>
-    <td>
+    <td class="col-role"><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Company || 'Not stated')}</span></td>
+    <td class="col-country">${esc(job.Country || 'Global')}</td>
+    <td class="col-posted"><span class="track">${esc(postedDate)}</span></td>
+    <td class="col-crawl"><span class="track">${esc(crawlDate)}</span></td>
+    <td class="col-workplace"><span class="work-pill ${remote ? 'remote' : ''}">${esc(work)}</span></td>
+    <td class="col-match"><span class="match-pill ${score ? `score-${score}` : 'score-none'}">${score ? score + '%' : '—'}</span></td>
+    <td class="col-applied">
       <button class="applied-badge ${isApplied ? 'applied' : ''}" data-applied="${esc(keyFor(job))}">
         ${isApplied ? '✓ Applied' : 'Mark Applied'}
       </button>
     </td>
-    <td class="open-cell">${job['Job URL'] ? `<a class="open-link" href="${esc(job['Job URL'])}" target="_blank" rel="noopener" title="Open job posting">↗</a>` : '—'}</td></tr>`;
+    <td class="col-link open-cell">${job['Job URL'] ? `<a class="open-link" href="${esc(job['Job URL'])}" target="_blank" rel="noopener" title="Open job posting">↗</a>` : '—'}</td></tr>`;
   }).join('') : `<tr><td colspan="9" class="empty">No opportunities match these filters.<br/><button class="clear-filters" id="empty-clear">Clear filters</button></td></tr>`;
 
   document.querySelectorAll('[data-save]').forEach((button) => button.onclick = () => { const keys = shortlist(), key = button.dataset.save; const adding = !keys.has(key); adding ? keys.add(key) : keys.delete(key); saveShortlist(keys); renderAll(); showToast(adding ? 'Added to your shortlist.' : 'Removed from your shortlist.'); });
