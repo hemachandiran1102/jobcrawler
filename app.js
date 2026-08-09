@@ -445,15 +445,48 @@ function renderCountryBars(countries, totalRoles) {
     };
   }
 
+const COUNTRY_CODES = {
+  'United Kingdom': 'GB',
+  'Canada': 'CA',
+  'United Arab Emirates': 'AE',
+  'Saudi Arabia': 'SA',
+  'Qatar': 'QA',
+  'Kuwait': 'KW',
+  'Bahrain': 'BH',
+  'Oman': 'OM',
+  'Netherlands': 'NL',
+  'Ireland': 'IE',
+  'Sweden': 'SE',
+  'Denmark': 'DK',
+  'Finland': 'FI',
+  'France': 'FR',
+  'Portugal': 'PT',
+  'Poland': 'PL',
+  'Belgium': 'BE',
+  'Austria': 'AT',
+  'Australia': 'AU',
+  'Singapore': 'SG',
+  'Malaysia': 'MY',
+  'New Zealand': 'NZ',
+  'Germany': 'DE',
+  'United States': 'US',
+  'Switzerland': 'CH',
+  'Norway': 'NO',
+  'Spain': 'ES',
+  'Italy': 'IT',
+  'India': 'IN',
+  'Remote': 'GL'
+};
+
   container.innerHTML = list.map(([country, n]) => {
-    const flag = COUNTRY_FLAGS[country] || '📍';
+    const code = COUNTRY_CODES[country] || (country.length >= 2 ? country.slice(0, 2).toUpperCase() : 'GL');
     const percent = ((n / totalRoles) * 100).toFixed(1);
     const barWidth = Math.max(2, (n / max * 100)).toFixed(1);
     const isActive = activeCountry && (activeCountry === country.toLowerCase());
     return `
       <div class="country-row ${isActive ? 'is-active' : ''}" data-country="${esc(country)}" title="Click to filter by ${esc(country)} (${n.toLocaleString()} roles · ${percent}%)">
         <div class="country-name-cell">
-          <span class="country-flag">${flag}</span>
+          <span class="country-flag-code">${code}</span>
           <span class="country-name-text">${esc(country)}</span>
         </div>
         <div class="bar">

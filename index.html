@@ -58,36 +58,56 @@
         </section>
 
         <section class="metrics">
-          <article><p>Total roles</p><strong id="metric-total">0</strong><span id="metric-total-note">0 companies represented</span></article>
-          <article><p>High match (≥85%)</p><strong id="metric-high-match">0</strong><span>Top fit for your background</span></article>
-          <article class="clickable" id="metric-applied-card" title="Click to view all applied jobs"><p>Jobs Applied</p><strong id="metric-applied" class="metric-applied-val">0</strong><span id="metric-applied-note">0% submitted · Click to filter</span></article>
-          <article class="clickable" id="metric-shortlisted-card" title="Click to view shortlisted roles"><p>Shortlisted</p><strong id="metric-shortlisted" class="metric-shortlist-val">0</strong><span id="metric-shortlist-note">Your roles to revisit</span></article>
-          <article><p>Target markets</p><strong id="metric-countries">0</strong><span id="metric-country-note">Across primary focus areas</span></article>
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-badge">TOTAL</span></div>
+            <strong id="metric-total">0</strong>
+            <span class="metric-note" id="metric-total-note">0 companies represented</span>
+          </article>
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-badge badge-match">MATCH ≥85%</span></div>
+            <strong id="metric-high-match">0</strong>
+            <span class="metric-note">Top fit for your background</span>
+          </article>
+          <article class="metric-card clickable card-applied" id="metric-applied-card" title="Click to view all applied jobs">
+            <div class="metric-head"><span class="metric-badge badge-applied">APPLIED</span><span class="card-action-icon">↗</span></div>
+            <strong id="metric-applied" class="metric-applied-val">0</strong>
+            <span class="metric-note" id="metric-applied-note">0% submitted · Click to filter</span>
+          </article>
+          <article class="metric-card clickable card-shortlist" id="metric-shortlisted-card" title="Click to view shortlisted roles">
+            <div class="metric-head"><span class="metric-badge badge-shortlist">SHORTLIST</span><span class="card-action-icon">↗</span></div>
+            <strong id="metric-shortlisted" class="metric-shortlist-val">0</strong>
+            <span class="metric-note" id="metric-shortlist-note">Your roles to revisit</span>
+          </article>
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-badge">MARKETS</span></div>
+            <strong id="metric-countries">0</strong>
+            <span class="metric-note" id="metric-country-note">Across primary focus areas</span>
+          </article>
         </section>
 
         <section class="insight-grid">
           <article class="chart-card">
-            <div class="section-heading">
-              <div>
-                <h2>Roles by target country</h2>
+            <div class="chart-card-top">
+              <div class="chart-card-title-group">
+                <div class="title-with-pill">
+                  <h2>Roles by target country</h2>
+                  <span class="market-count-pill" id="country-data-label">19 MARKETS</span>
+                </div>
                 <p class="chart-subtitle" id="country-chart-subtitle">All active international tech markets</p>
               </div>
-              <div class="chart-header-actions">
-                <span class="data-label" id="country-data-label">ALL MARKETS</span>
-                <button class="chart-action-btn" id="country-filter-clear-btn" style="display:none;" title="Clear country filter">✕ Clear filter</button>
+              <div class="chart-controls-group">
+                <div class="chart-search-wrap">
+                  <span>⌕</span>
+                  <input type="text" id="country-search-input" placeholder="Search country…" />
+                </div>
+                <div class="chart-sort-toggle">
+                  <button class="sort-toggle-btn active" id="sort-country-count" title="Sort by volume">Volume</button>
+                  <button class="sort-toggle-btn" id="sort-country-alpha" title="Sort alphabetically">A–Z</button>
+                </div>
+                <button class="clear-country-filter" id="country-filter-clear-btn" style="display:none;" title="Clear country filter">✕</button>
               </div>
             </div>
-            <div class="country-bars-toolbar" id="country-bars-toolbar">
-              <div class="country-search-wrap">
-                <span>⌕</span>
-                <input type="search" id="country-search-input" placeholder="Search target country or market…" />
-              </div>
-              <div class="country-sort-toggle">
-                <button class="country-sort-btn active" id="sort-country-count" title="Sort by volume">By Volume</button>
-                <button class="country-sort-btn" id="sort-country-alpha" title="Sort alphabetically">A–Z</button>
-              </div>
-            </div>
-            <div class="country-bars" id="country-bars"></div>
+            <div class="country-bars-scroll" id="country-bars"></div>
           </article>
           <article class="focus-card">
             <p class="eyebrow">FEATURED FIT</p>
@@ -99,20 +119,32 @@
         </section>
 
         <section class="roles-section" id="roles">
-          <div class="roles-header">
-            <h2>Opportunity queue <span id="visible-count">0</span></h2>
-            <div class="toolbar">
-              <div class="search-wrap"><span>⌕</span><input type="search" id="search" placeholder="Search by title, company, skills…" /></div>
+          <div class="queue-master-bar">
+            <div class="queue-left">
+              <h2>Opportunity queue <span class="queue-count-badge" id="visible-count">0</span></h2>
+            </div>
+            <div class="queue-center">
+              <div class="status-tabs-bar" id="status-tabs-bar">
+                <button class="status-pill active" data-status-tab="all">All Roles</button>
+                <button class="status-pill pill-match" data-status-tab="high">🔥 Match ≥85%</button>
+                <button class="status-pill pill-applied" data-status-tab="applied">✓ Applied <b id="tab-count-applied">0</b></button>
+                <button class="status-pill pill-shortlist" data-status-tab="shortlisted">★ Shortlisted <b id="tab-count-shortlisted">0</b></button>
+              </div>
+            </div>
+            <div class="queue-right">
+              <div class="search-wrap">
+                <span>⌕</span>
+                <input type="search" id="search" placeholder="Search title, company, skill…" />
+              </div>
               <button class="filter-button" id="filter-button">Filter <span id="filter-count">0</span></button>
             </div>
           </div>
-          <div class="status-tabs-bar" id="status-tabs-bar">
-            <button class="status-tab active" data-status-tab="all">All Roles (<span id="tab-count-all">0</span>)</button>
-            <button class="status-tab" data-status-tab="high">🔥 High Fit ≥85% (<span id="tab-count-high">0</span>)</button>
-            <button class="status-tab" data-status-tab="shortlisted">★ Shortlisted (<span id="tab-count-shortlisted">0</span>)</button>
-            <button class="status-tab status-tab-applied" data-status-tab="applied">✓ Applied (<span id="tab-count-applied">0</span>)</button>
+
+          <div class="timeline-strip">
+            <span class="timeline-label">CRAWL DATE:</span>
+            <div class="date-tabs-bar" id="date-tabs-bar"></div>
           </div>
-          <div class="date-tabs-bar" id="date-tabs-bar"></div>
+
           <div class="filters-panel" id="filters-panel" hidden>
             <label>Country<select id="country-filter"><option value="">All countries</option></select></label>
             <label>Match Score<select id="score-filter"><option value="">Any score</option><option value="85">85%+ Top match</option><option value="70">70%+ Good match</option></select></label>
