@@ -290,17 +290,230 @@ function applyFilters() {
   });
 }
 
+const COUNTRY_FLAGS = {
+  'United Kingdom': '🇬🇧',
+  'Canada': '🇨🇦',
+  'United Arab Emirates': '🇦🇪',
+  'Saudi Arabia': '🇸🇦',
+  'Qatar': '🇶🇦',
+  'Kuwait': '🇰🇼',
+  'Bahrain': '🇧🇭',
+  'Oman': '🇴🇲',
+  'Netherlands': '🇳🇱',
+  'Ireland': '🇮🇪',
+  'Sweden': '🇸🇪',
+  'Denmark': '🇩🇰',
+  'Finland': '🇫🇮',
+  'France': '🇫🇷',
+  'Portugal': '🇵🇹',
+  'Poland': '🇵🇱',
+  'Belgium': '🇧🇪',
+  'Austria': '🇦🇹',
+  'Australia': '🇦🇺',
+  'Singapore': '🇸🇬',
+  'Malaysia': '🇲🇾',
+  'New Zealand': '🇳🇿',
+  'Germany': '🇩🇪',
+  'United States': '🇺🇸',
+  'Switzerland': '🇨🇭',
+  'Norway': '🇳🇴',
+  'Spain': '🇪🇸',
+  'Italy': '🇮🇹',
+  'India': '🇮🇳',
+  'Remote': '🌐'
+};
+
+let countryChartSort = 'volume';
+let countryChartQuery = '';
+
 function renderMetrics() {
   const all = state.jobs, saved = shortlist(), high = all.filter((j) => scoreOf(j) >= 85), countries = countBy(all, 'Country');
-  $('metric-total').textContent = all.length.toLocaleString(); $('metric-total-note').textContent = `${countBy(all, 'Company').length.toLocaleString()} companies represented`;
-  $('metric-high-match').textContent = high.length.toLocaleString(); $('metric-shortlisted').textContent = saved.size.toLocaleString(); $('metric-shortlist-note').textContent = saved.size ? 'Your roles to revisit' : 'Start saving standout roles';
-  $('metric-countries').textContent = countries.length; $('metric-country-note').textContent = countries.slice(0,2).map(([x]) => x).join(' & ') + (countries.length > 2 ? ' + more' : '');
+  const appliedJobs = all.filter((j) => (j['Applied Status'] || '').toLowerCase() === 'yes');
+  const totalRoles = all.length || 1;
+  const appliedPct = ((appliedJobs.length / totalRoles) * 100).toFixed(1);
+
+  $('metric-total').textContent = all.length.toLocaleString();
+  $('metric-total-note').textContent = `${countBy(all, 'Company').length.toLocaleString()} companies represented`;
+  $('metric-high-match').textContent = high.length.toLocaleString();
+  
+  if ($('metric-applied')) {
+    $('metric-applied').textContent = appliedJobs.length.toLocaleString();
+  }
+  if ($('metric-applied-note')) {
+    $('metric-applied-note').textContent = appliedJobs.length ? `${appliedPct}% submitted · Click to filter` : 'Track sent applications';
+  }
+
+  $('metric-shortlisted').textContent = saved.size.toLocaleString();
+  $('metric-shortlist-note').textContent = saved.size ? 'Your roles to revisit' : 'Start saving standout roles';
+  $('metric-countries').textContent = countries.length;
+  $('metric-country-note').textContent = countries.length ? `Across ${countries.length} target markets` : 'Primary focus areas';
+  
   $('nav-shortlist').textContent = saved.size;
+  if ($('nav-applied')) {
+    $('nav-applied').textContent = appliedJobs.length.toLocaleString();
+  }
+
+  // Update Opportunity Queue status tab counts
+  if ($('tab-count-all')) $('tab-count-all').textContent = all.length.toLocaleString();
+  if ($('tab-count-high')) $('tab-count-high').textContent = high.length.toLocaleString();
+  if ($('tab-count-shortlisted')) $('tab-count-shortlisted').textContent = saved.size.toLocaleString();
+  if ($('tab-count-applied')) $('tab-count-applied').textContent = appliedJobs.length.toLocaleString();
+
+  updateActiveStatusTab();
+
   $('dataset-summary').textContent = `${all.length.toLocaleString()} opportunities across ${countries.length} countries — filter the noise, keep what matters, and make every application count.`;
-  const top = countries.slice(0, 5), max = top[0]?.[1] || 1;
-  $('country-bars').innerHTML = top.map(([country, n]) => `<div class="country-row"><span>${esc(country)}</span><div class="bar"><i style="width:${(n/max*100).toFixed(1)}%"></i></div><b>${n}</b></div>`).join('');
+
+  if ($('country-data-label')) {
+    $('country-data-label').textContent = `${countries.length} TARGET MARKETS`;
+  }
+  if ($('country-chart-subtitle')) {
+    $('country-chart-subtitle').textContent = `Showing all ${countries.length} markets · ${all.length.toLocaleString()} total roles`;
+  }
+
+  // Showcase all target countries data
+  renderCountryBars(countries, totalRoles);
+
   const best = all.slice().sort((a,b) => scoreOf(b) - scoreOf(a))[0];
-  if (best) { $('focus-score').innerHTML = `${scoreOf(best)}<small>%</small>`; $('focus-title').textContent = best['Job Title']; $('focus-company').textContent = `${best.Company || 'Company not stated'} · ${best.Location || best.Country || 'Location not stated'}`; $('view-best-fit').onclick = () => focusJob(best); }
+  if (best) {
+    $('focus-score').innerHTML = `${scoreOf(best)}<small>%</small>`;
+    $('focus-title').textContent = best['Job Title'];
+    $('focus-company').textContent = `${best.Company || 'Company not stated'} · ${best.Location || best.Country || 'Location not stated'}`;
+    $('view-best-fit').onclick = () => focusJob(best);
+  }
+}
+
+function updateActiveStatusTab() {
+  const tabs = document.querySelectorAll('[data-status-tab]');
+  tabs.forEach((tab) => {
+    const tabType = tab.dataset.statusTab;
+    let isActive = false;
+    if (tabType === 'all' && !state.filters.status && !state.filters.score) {
+      isActive = true;
+    } else if (tabType === 'high' && state.filters.score === '85' && !state.filters.status) {
+      isActive = true;
+    } else if (tabType === 'shortlisted' && state.filters.status === 'shortlisted') {
+      isActive = true;
+    } else if (tabType === 'applied' && state.filters.status === 'applied') {
+      isActive = true;
+    }
+    tab.classList.toggle('active', isActive);
+  });
+
+  const appliedCard = $('metric-applied-card');
+  if (appliedCard) {
+    appliedCard.classList.toggle('active', state.filters.status === 'applied');
+  }
+  const shortlistedCard = $('metric-shortlisted-card');
+  if (shortlistedCard) {
+    shortlistedCard.classList.toggle('active', state.filters.status === 'shortlisted');
+  }
+}
+
+function renderCountryBars(countries, totalRoles) {
+  const container = $('country-bars');
+  if (!container) return;
+
+  if (!countries.length) {
+    container.innerHTML = '<p class="empty-hint">No country data loaded yet.</p>';
+    return;
+  }
+
+  let list = countries.slice();
+  if (countryChartQuery) {
+    const q = countryChartQuery.toLowerCase();
+    list = list.filter(([c]) => c.toLowerCase().includes(q));
+  }
+
+  if (countryChartSort === 'alpha') {
+    list.sort((a, b) => a[0].localeCompare(b[0]));
+  } else {
+    list.sort((a, b) => b[1] - a[1]);
+  }
+
+  const max = countries[0]?.[1] || 1;
+  const activeCountry = (state.filters.country || '').trim().toLowerCase();
+
+  const clearBtn = $('country-filter-clear-btn');
+  if (clearBtn) {
+    clearBtn.style.display = activeCountry ? 'inline-block' : 'none';
+    clearBtn.onclick = (e) => {
+      e.stopPropagation();
+      state.filters.country = '';
+      if ($('country-filter')) $('country-filter').value = '';
+      state.page = 1;
+      renderAll();
+    };
+  }
+
+  container.innerHTML = list.map(([country, n]) => {
+    const flag = COUNTRY_FLAGS[country] || '📍';
+    const percent = ((n / totalRoles) * 100).toFixed(1);
+    const barWidth = Math.max(2, (n / max * 100)).toFixed(1);
+    const isActive = activeCountry && (activeCountry === country.toLowerCase());
+    return `
+      <div class="country-row ${isActive ? 'is-active' : ''}" data-country="${esc(country)}" title="Click to filter by ${esc(country)} (${n.toLocaleString()} roles · ${percent}%)">
+        <div class="country-name-cell">
+          <span class="country-flag">${flag}</span>
+          <span class="country-name-text">${esc(country)}</span>
+        </div>
+        <div class="bar">
+          <i style="width:${barWidth}%"></i>
+        </div>
+        <div class="country-count-badge">
+          <b>${n.toLocaleString()}</b>
+          <span class="country-pct">${percent}%</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.country-row').forEach((row) => {
+    row.onclick = () => {
+      const selected = row.dataset.country;
+      if (state.filters.country && state.filters.country.toLowerCase() === selected.toLowerCase()) {
+        state.filters.country = '';
+      } else {
+        state.filters.country = selected;
+      }
+      if ($('country-filter')) $('country-filter').value = state.filters.country;
+      state.page = 1;
+      renderAll();
+      const rolesSection = $('roles');
+      if (rolesSection && state.filters.country) {
+        rolesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+  });
+}
+
+function initCountryChartToolbar() {
+  const searchInput = $('country-search-input');
+  if (searchInput) {
+    searchInput.oninput = (e) => {
+      countryChartQuery = e.target.value.trim();
+      const countries = countBy(state.jobs, 'Country');
+      renderCountryBars(countries, state.jobs.length || 1);
+    };
+  }
+
+  const btnVolume = $('sort-country-count');
+  const btnAlpha = $('sort-country-alpha');
+  if (btnVolume && btnAlpha) {
+    btnVolume.onclick = () => {
+      countryChartSort = 'volume';
+      btnVolume.classList.add('active');
+      btnAlpha.classList.remove('active');
+      const countries = countBy(state.jobs, 'Country');
+      renderCountryBars(countries, state.jobs.length || 1);
+    };
+    btnAlpha.onclick = () => {
+      countryChartSort = 'alpha';
+      btnAlpha.classList.add('active');
+      btnVolume.classList.remove('active');
+      const countries = countBy(state.jobs, 'Country');
+      renderCountryBars(countries, state.jobs.length || 1);
+    };
+  }
 }
 
 function renderFilters() {
@@ -891,8 +1104,110 @@ async function initDashboardData() {
   updateStoredCount();
 }
 
+function initStatusTabs() {
+  document.querySelectorAll('[data-status-tab]').forEach((tab) => {
+    tab.onclick = () => {
+      const type = tab.dataset.statusTab;
+      if (type === 'all') {
+        state.filters.status = '';
+        state.filters.score = '';
+        if ($('score-filter')) $('score-filter').value = '';
+        if ($('status-filter')) $('status-filter').value = '';
+      } else if (type === 'high') {
+        state.filters.status = '';
+        state.filters.score = '85';
+        if ($('score-filter')) $('score-filter').value = '85';
+        if ($('status-filter')) $('status-filter').value = '';
+      } else if (type === 'shortlisted') {
+        state.filters.status = 'shortlisted';
+        if ($('status-filter')) $('status-filter').value = 'shortlisted';
+      } else if (type === 'applied') {
+        state.filters.status = 'applied';
+        if ($('status-filter')) $('status-filter').value = 'applied';
+      }
+      state.page = 1;
+      renderAll();
+    };
+  });
+
+  const appliedCard = $('metric-applied-card');
+  if (appliedCard) {
+    appliedCard.onclick = () => {
+      if (state.filters.status === 'applied') {
+        state.filters.status = '';
+      } else {
+        state.filters.status = 'applied';
+      }
+      if ($('status-filter')) $('status-filter').value = state.filters.status;
+      state.page = 1;
+      renderAll();
+      const rolesSec = $('roles');
+      if (rolesSec && state.filters.status) rolesSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  }
+
+  const shortlistedCard = $('metric-shortlisted-card');
+  if (shortlistedCard) {
+    shortlistedCard.onclick = () => {
+      if (state.filters.status === 'shortlisted') {
+        state.filters.status = '';
+      } else {
+        state.filters.status = 'shortlisted';
+      }
+      if ($('status-filter')) $('status-filter').value = state.filters.status;
+      state.page = 1;
+      renderAll();
+      const rolesSec = $('roles');
+      if (rolesSec && state.filters.status) rolesSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  }
+
+  const navAppliedLink = $('nav-applied-link');
+  if (navAppliedLink) {
+    navAppliedLink.onclick = (e) => {
+      e.preventDefault();
+      state.filters.status = 'applied';
+      if ($('status-filter')) $('status-filter').value = 'applied';
+      state.page = 1;
+      renderAll();
+      const rolesSec = $('roles');
+      if (rolesSec) rolesSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  }
+
+  const navShortlistLink = $('nav-shortlist-link');
+  if (navShortlistLink) {
+    navShortlistLink.onclick = (e) => {
+      e.preventDefault();
+      state.filters.status = 'shortlisted';
+      if ($('status-filter')) $('status-filter').value = 'shortlisted';
+      state.page = 1;
+      renderAll();
+      const rolesSec = $('roles');
+      if (rolesSec) rolesSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  }
+
+  const navRolesLink = $('nav-roles-link');
+  if (navRolesLink) {
+    navRolesLink.onclick = (e) => {
+      e.preventDefault();
+      state.filters.status = '';
+      state.filters.score = '';
+      if ($('status-filter')) $('status-filter').value = '';
+      if ($('score-filter')) $('score-filter').value = '';
+      state.page = 1;
+      renderAll();
+      const rolesSec = $('roles');
+      if (rolesSec) rolesSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  }
+}
+
 (function init() {
   initAuth();
+  initCountryChartToolbar();
+  initStatusTabs();
   initDashboardData();
   if (!isAuthActive()) {
     showAuthModal();

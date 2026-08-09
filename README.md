@@ -57,8 +57,11 @@ python full_crawl_to_word.py --time-window 24h
 # Past 1 week (7 Days)
 python full_crawl_to_word.py --time-window 1w
 
-# Past 1 month (30 Days) for specific countries
-python full_crawl_to_word.py --time-window 1m --countries netherlands ireland
+# Past 1 month (30 Days) for specific countries / regions / cities
+python full_crawl_to_word.py --time-window 1m --countries canada uk uae "saudi arabia" qatar
+# Or filter by region / city aliases
+python full_crawl_to_word.py --countries "canada cities" "uk cities" "arabian cities"
+python full_crawl_to_word.py --countries london toronto dubai riyadh amsterdam
 
 # Cap jobs per keyword
 python full_crawl_to_word.py --max-per-keyword 50
@@ -66,8 +69,8 @@ python full_crawl_to_word.py --max-per-keyword 50
 
 #### CLI Options:
 - `--time-window`: `24h` / `1d` (past 24 hrs), `1w` / `7d` (past week), `1m` / `30d` (past month), `all`.
-- `--countries`: Space-separated country list (e.g. `netherlands ireland sweden`).
-- `--max-per-keyword`: Maximum jobs per keyword per country.
+- `--countries`: Space-separated country or city/regional list (e.g. `canada uk uae "saudi arabia" qatar netherlands london toronto dubai`).
+- `--max-per-keyword`: Maximum jobs per keyword per country (default: `999`).
 - `--no-headless`: Show browser window (for initial LinkedIn login or CAPTCHA resolution).
 
 ---
@@ -107,8 +110,15 @@ python full_crawl_to_word.py --max-per-keyword 50
 
 ## 📊 Target Countries & Keywords
 
-**Coverage (14 Countries)**:
-🇳🇱 Netherlands · 🇮🇪 Ireland · 🇸🇪 Sweden · 🇩🇰 Denmark · 🇫🇮 Finland · 🇫🇷 France · 🇵🇹 Portugal · 🇵🇱 Poland · 🇧🇪 Belgium · 🇦🇹 Austria · 🇦🇺 Australia · 🇸🇬 Singapore · 🇲🇾 Malaysia · 🇳🇿 New Zealand
+**Global Tech Hubs & Coverage (22 Countries & Major Metro Cities)**:
+- 🇬🇧 **United Kingdom** *(London, Manchester, Birmingham, Edinburgh, Bristol, Cambridge, Leeds, Glasgow)*
+- 🇨🇦 **Canada** *(Toronto, Vancouver, Montreal, Calgary, Ottawa, Waterloo, Edmonton)*
+- 🇦🇪 **United Arab Emirates** *(Dubai, Abu Dhabi, Sharjah)*
+- 🇸🇦 **Saudi Arabia** *(Riyadh, Jeddah, Dammam, Khobar, NEOM)*
+- 🇶🇦 **Qatar** *(Doha, Lusail)*
+- 🇰🇼 **Kuwait** · 🇧🇭 **Bahrain** · 🇴🇲 **Oman**
+- 🇳🇱 **Netherlands** · 🇮🇪 **Ireland** · 🇸🇪 **Sweden** · 🇩🇰 **Denmark** · 🇫🇮 **Finland** · 🇫🇷 **France** · 🇵🇹 **Portugal** · 🇵🇱 **Poland** · 🇧🇪 **Belgium** · 🇦🇹 **Austria**
+- 🇦🇺 **Australia** · 🇸🇬 **Singapore** · 🇲🇾 **Malaysia** · 🇳🇿 **New Zealand**
 
 **Search Keywords**:
 `DevOps Engineer`, `Cloud Engineer`, `Site Reliability Engineer`, `Platform Engineer`

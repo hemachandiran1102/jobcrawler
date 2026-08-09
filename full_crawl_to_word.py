@@ -89,34 +89,53 @@ CONFIG_PATH       = WORK_DIR / "google_sheets_config.json"
 # CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════
 TARGET_COUNTRIES = [
-    {"name": "Netherlands", "flag": "🇳🇱", "tier": 1, "geo_id": "102890719",
-     "resume": "resumes/Hemachandiran_Giri_CV_NETHERLANDS.docx"},
-    {"name": "Ireland",     "flag": "🇮🇪", "tier": 1, "geo_id": "104738515",
-     "resume": "resumes/Hemachandiran_Giri_CV_IRELAND.docx"},
-    {"name": "Sweden",      "flag": "🇸🇪", "tier": 1, "geo_id": "105117694",
-     "resume": "resumes/Hemachandiran_Giri_CV_SWEDEN.docx"},
-    {"name": "Denmark",     "flag": "🇩🇰", "tier": 1, "geo_id": "104514075",
-     "resume": "resumes/Hemachandiran_Giri_CV_DENMARK.docx"},
-    {"name": "Finland",     "flag": "🇫🇮", "tier": 1, "geo_id": "100456013",
-     "resume": "resumes/Hemachandiran_Giri_CV_FINLAND.docx"},
-    {"name": "France",      "flag": "🇫🇷", "tier": 2, "geo_id": "105015875",
-     "resume": "resumes/Hemachandiran_Giri_CV_FRANCE.docx"},
-    {"name": "Portugal",    "flag": "🇵🇹", "tier": 2, "geo_id": "100364837",
-     "resume": "resumes/Hemachandiran_Giri_CV_PORTUGAL.docx"},
-    {"name": "Poland",      "flag": "🇵🇱", "tier": 2, "geo_id": "105072130",
-     "resume": "resumes/Hemachandiran_Giri_CV_POLAND.docx"},
-    {"name": "Belgium",     "flag": "🇧🇪", "tier": 2, "geo_id": "100565514",
-     "resume": "resumes/Hemachandiran_Giri_CV_BELGIUM.docx"},
-    {"name": "Austria",     "flag": "🇦🇹", "tier": 2, "geo_id": "103883259",
-     "resume": "resumes/Hemachandiran_Giri_CV_AUSTRIA.docx"},
-    {"name": "Australia",   "flag": "🇦🇺", "tier": 1, "geo_id": "101452733",
-     "resume": "resumes/Hemachandiran_Giri_CV_AUSTRALIA.docx"},
-    {"name": "Singapore",   "flag": "🇸🇬", "tier": 1, "geo_id": "102454443",
-     "resume": "resumes/Hemachandiran_Giri_CV_SINGAPORE.docx"},
-    {"name": "Malaysia",    "flag": "🇲🇾", "tier": 2, "geo_id": "106808692",
-     "resume": "resumes/Hemachandiran_Giri_CV_MALAYSIA.docx"},
-    {"name": "New Zealand", "flag": "🇳🇿", "tier": 1, "geo_id": "105490917",
-     "resume": "resumes/Hemachandiran_Giri_CV_NEW_ZEALAND.docx"},
+    # ── Tier 1: Primary English-Speaking / High Feasibility / Major Tech Hubs ──
+    {"name": "United Kingdom",       "flag": "🇬🇧", "tier": 1, "geo_id": "102257491",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_UNITED_KINGDOM.docx"},
+    {"name": "Canada",               "flag": "🇨🇦", "tier": 1, "geo_id": "101174742",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_CANADA.docx"},
+    {"name": "United Arab Emirates", "flag": "🇦🇪", "tier": 1, "geo_id": "104305776",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_UAE.docx"},
+    {"name": "Saudi Arabia",         "flag": "🇸🇦", "tier": 1, "geo_id": "100459316",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_SAUDI_ARABIA.docx"},
+    {"name": "Qatar",                "flag": "🇶🇦", "tier": 1, "geo_id": "104170880",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_QATAR.docx"},
+    {"name": "Netherlands",          "flag": "🇳🇱", "tier": 1, "geo_id": "102890719",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_NETHERLANDS.docx"},
+    {"name": "Ireland",              "flag": "🇮🇪", "tier": 1, "geo_id": "104738515",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_IRELAND.docx"},
+    {"name": "Sweden",               "flag": "🇸🇪", "tier": 1, "geo_id": "105117694",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_SWEDEN.docx"},
+    {"name": "Denmark",              "flag": "🇩🇰", "tier": 1, "geo_id": "104514075",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_DENMARK.docx"},
+    {"name": "Finland",              "flag": "🇫🇮", "tier": 1, "geo_id": "100456013",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_FINLAND.docx"},
+    {"name": "Australia",            "flag": "🇦🇺", "tier": 1, "geo_id": "101452733",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_AUSTRALIA.docx"},
+    {"name": "Singapore",            "flag": "🇸🇬", "tier": 1, "geo_id": "102454443",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_SINGAPORE.docx"},
+    {"name": "New Zealand",          "flag": "🇳🇿", "tier": 1, "geo_id": "105490917",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_NEW_ZEALAND.docx"},
+
+    # ── Tier 2: Strong European & Arabian Tech Markets ──
+    {"name": "Kuwait",               "flag": "🇰🇼", "tier": 2, "geo_id": "106461973",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_KUWAIT.docx"},
+    {"name": "Bahrain",              "flag": "🇧🇭", "tier": 2, "geo_id": "104508036",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_BAHRAIN.docx"},
+    {"name": "Oman",                 "flag": "🇴🇲", "tier": 2, "geo_id": "105342733",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_OMAN.docx"},
+    {"name": "France",               "flag": "🇫🇷", "tier": 2, "geo_id": "105015875",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_FRANCE.docx"},
+    {"name": "Portugal",             "flag": "🇵🇹", "tier": 2, "geo_id": "100364837",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_PORTUGAL.docx"},
+    {"name": "Poland",               "flag": "🇵🇱", "tier": 2, "geo_id": "105072130",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_POLAND.docx"},
+    {"name": "Belgium",              "flag": "🇧🇪", "tier": 2, "geo_id": "100565514",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_BELGIUM.docx"},
+    {"name": "Austria",              "flag": "🇦🇹", "tier": 2, "geo_id": "103883259",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_AUSTRIA.docx"},
+    {"name": "Malaysia",             "flag": "🇲🇾", "tier": 2, "geo_id": "106808692",
+     "resume": "Country_Resumes/Hemachandiran_Giri_CV_MALAYSIA.docx"},
 ]
 
 SEARCH_TERMS = [
@@ -130,6 +149,7 @@ VISA_KEYWORDS = [
     "visa", "sponsorship", "relocation", "work permit", "blue card",
     "kennismigrant", "critical skills", "passeport talent", "tech visa",
     "red-white-red", "tier 2", "skilled worker", "immigration",
+    "global skills", "express entry", "green visa", "golden visa", "iqama",
 ]
 
 SKILL_TAGS = [
@@ -382,15 +402,16 @@ def _make_session(li_at: str, csrf: str, cookies_dict: dict) -> requests.Session
 
 
 def search_jobs_voyager(session: requests.Session, keyword: str, geo_id: str,
-                        start: int = 0, count: int = 25, time_posted_range: str = "r86400") -> dict:
+                        start: int = 0, count: int = 25, time_posted_range: str = "r86400",
+                        location: str = "") -> dict:
     """
-    Call LinkedIn Guest/API endpoint for the last 24 hours (r86400).
+    Call LinkedIn Guest/API endpoint for the given location and geoId.
     """
     params = {
         "keywords": keyword,
-        "location": "Europe",
+        "location": location or "Europe",
         "geoId": geo_id,
-        "f_TPR": time_posted_range,  # Past 24 hours
+        "f_TPR": time_posted_range,  # Past 24 hours / week / month
         "f_JT": "F",          # Full-time
         "sortBy": "DD",
         "start": start,
@@ -623,6 +644,101 @@ def parse_voyager_jobs(data: dict) -> list:
     return jobs
 
 
+def filter_target_countries(targets: list, countries_filter) -> list:
+    """
+    Filter target locations supporting country names, regional groups (e.g. 'arabian cities',
+    'middle east', 'gcc', 'uk cities', 'canada cities'), and specific major city aliases.
+    """
+    if not countries_filter:
+        return targets
+
+    alias_map = {
+        # UK / British hubs & cities
+        "uk": ["United Kingdom"],
+        "uk cities": ["United Kingdom"],
+        "britain": ["United Kingdom"],
+        "great britain": ["United Kingdom"],
+        "england": ["United Kingdom"],
+        "london": ["United Kingdom"],
+        "manchester": ["United Kingdom"],
+        "birmingham": ["United Kingdom"],
+        "edinburgh": ["United Kingdom"],
+        "bristol": ["United Kingdom"],
+        "cambridge": ["United Kingdom"],
+        "leeds": ["United Kingdom"],
+        "glasgow": ["United Kingdom"],
+
+        # Canadian hubs & cities
+        "canada": ["Canada"],
+        "canada cities": ["Canada"],
+        "canadian cities": ["Canada"],
+        "toronto": ["Canada"],
+        "vancouver": ["Canada"],
+        "montreal": ["Canada"],
+        "calgary": ["Canada"],
+        "ottawa": ["Canada"],
+        "waterloo": ["Canada"],
+        "edmonton": ["Canada"],
+
+        # Arabian / Middle East / Gulf (GCC) cities & nations
+        "uae": ["United Arab Emirates"],
+        "dubai": ["United Arab Emirates"],
+        "abu dhabi": ["United Arab Emirates"],
+        "sharjah": ["United Arab Emirates"],
+        "emirates": ["United Arab Emirates"],
+
+        "saudi": ["Saudi Arabia"],
+        "saudi arabia": ["Saudi Arabia"],
+        "ksa": ["Saudi Arabia"],
+        "riyadh": ["Saudi Arabia"],
+        "jeddah": ["Saudi Arabia"],
+        "dammam": ["Saudi Arabia"],
+        "khobar": ["Saudi Arabia"],
+        "neom": ["Saudi Arabia"],
+
+        "qatar": ["Qatar"],
+        "doha": ["Qatar"],
+        "lusail": ["Qatar"],
+
+        "kuwait": ["Kuwait"],
+        "kuwait city": ["Kuwait"],
+
+        "bahrain": ["Bahrain"],
+        "manama": ["Bahrain"],
+
+        "oman": ["Oman"],
+        "muscat": ["Oman"],
+
+        "arabian": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+        "arabian cities": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+        "arab": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+        "arab cities": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+        "gcc": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+        "middle east": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+        "gulf": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+        "gulf cities": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+    }
+
+    target_names = set()
+    for f in countries_filter:
+        fl = f.strip().lower()
+        if fl in alias_map:
+            for mapped in alias_map[fl]:
+                target_names.add(mapped.lower())
+        else:
+            matched = False
+            for c in targets:
+                c_lower = c["name"].lower()
+                if fl in c_lower or c_lower in fl:
+                    target_names.add(c_lower)
+                    matched = True
+            if not matched:
+                target_names.add(fl)
+
+    filtered = [c for c in targets if c["name"].lower() in target_names]
+    return filtered or targets
+
+
 # ══════════════════════════════════════════════════════════════════════
 # PHASE 3 — Browser fallback scraper (improved selectors)
 # ══════════════════════════════════════════════════════════════════════
@@ -636,9 +752,7 @@ def scrape_with_browser(headless: bool, countries_filter, max_per_kw: int) -> li
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
     all_jobs = []
 
-    countries = TARGET_COUNTRIES
-    if countries_filter:
-        countries = [c for c in TARGET_COUNTRIES if c["name"].lower() in countries_filter]
+    countries = filter_target_countries(TARGET_COUNTRIES, countries_filter)
 
     with sync_playwright() as p:
         browser = p.chromium.launch_persistent_context(
@@ -934,9 +1048,7 @@ def run_full_crawl(headless=True, countries_filter=None, max_per_kw=999, time_po
     log(f"   Time window   : {time_posted_range or 'All time'}")
     log("=" * 65)
 
-    countries = TARGET_COUNTRIES
-    if countries_filter:
-        countries = [c for c in TARGET_COUNTRIES if c["name"].lower() in countries_filter]
+    countries = filter_target_countries(TARGET_COUNTRIES, countries_filter)
 
     # ── Step 1: get session tokens from browser ────────────────────
     li_at, csrf, cookies_dict = get_linkedin_session(headless=headless)
@@ -961,7 +1073,8 @@ def run_full_crawl(headless=True, countries_filter=None, max_per_kw=999, time_po
 
             while len(kw_jobs) < max_per_kw:
                 log(f"    start={start} …")
-                data = search_jobs_voyager(session, term, country["geo_id"], start, time_posted_range=time_posted_range)
+                data = search_jobs_voyager(session, term, country["geo_id"], start,
+                                           time_posted_range=time_posted_range, location=country["name"])
 
                 # If main endpoint gives nothing, try alternative
                 if not data or not data.get("elements"):
@@ -1137,12 +1250,13 @@ def parse_sort_datetime(posted_val):
 
 
 def extract_city(loc_str):
-    if not loc_str or loc_str in ["N/A", "Europe", "Unknown"]:
+    if not loc_str or str(loc_str).strip() in ["N/A", "Europe", "Unknown", "Worldwide", "Remote", "EMEA"]:
         return "Other Locations"
     parts = [p.strip() for p in str(loc_str).split(",")]
     if len(parts) >= 1:
         city = parts[0]
         city = re.sub(r'^(Greater|Metropolitan|City of)\s+', '', city, flags=re.I).strip()
+        city = re.sub(r'\s+(Area|Metropolitan Area)$', '', city, flags=re.I).strip()
         return city if city else "Other Locations"
     return "Other Locations"
 
@@ -1612,7 +1726,7 @@ def main():
     log("🚀  full_crawl_to_word.py  v2  (Voyager API + DOM fallback)")
     log(f"   Mode          : {'Headless' if headless else 'Visible browser'}")
     log(f"   Time Window   : {tw_label} ({time_posted_range or 'any'})")
-    log(f"   Countries     : {countries_filter or 'All 10'}")
+    log(f"   Countries     : {countries_filter or f'All {len(TARGET_COUNTRIES)} Target Locations'}")
     log(f"   Max per kw    : {args.max_per_keyword}")
     log(f"   Output        : {WORK_DIR}")
     log(f"   Session       : {SESSION_DIR}")

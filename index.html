@@ -15,9 +15,10 @@
       <aside class="sidebar">
         <a class="brand" href="#top" aria-label="Job Compass home"><span class="brand-mark">J</span><span>job<span>compass</span></span></a>
         <nav class="nav" aria-label="Main navigation">
-          <a class="active" href="#top"><span>▦</span> Overview</a>
-          <a href="#roles"><span>⌕</span> Explore roles</a>
-          <a href="#shortlist"><span>★</span> Shortlist <b id="nav-shortlist">0</b></a>
+          <a class="active" href="#top" id="nav-overview-link"><span>▦</span> Overview</a>
+          <a href="#roles" id="nav-roles-link"><span>⌕</span> Explore roles</a>
+          <a href="#shortlist" id="nav-shortlist-link"><span>★</span> Shortlist <b id="nav-shortlist">0</b></a>
+          <a href="#applied" id="nav-applied-link"><span>✓</span> Applied <b id="nav-applied" class="nav-applied-badge">0</b></a>
         </nav>
         <div class="sidebar-bottom">
           <button class="import-button sidebar-import" id="import-button"><span>＋</span> Import export</button>
@@ -59,13 +60,33 @@
         <section class="metrics">
           <article><p>Total roles</p><strong id="metric-total">0</strong><span id="metric-total-note">0 companies represented</span></article>
           <article><p>High match (≥85%)</p><strong id="metric-high-match">0</strong><span>Top fit for your background</span></article>
-          <article><p>Shortlisted</p><strong id="metric-shortlisted">0</strong><span id="metric-shortlist-note">Your roles to revisit</span></article>
+          <article class="clickable" id="metric-applied-card" title="Click to view all applied jobs"><p>Jobs Applied</p><strong id="metric-applied" class="metric-applied-val">0</strong><span id="metric-applied-note">0% submitted · Click to filter</span></article>
+          <article class="clickable" id="metric-shortlisted-card" title="Click to view shortlisted roles"><p>Shortlisted</p><strong id="metric-shortlisted" class="metric-shortlist-val">0</strong><span id="metric-shortlist-note">Your roles to revisit</span></article>
           <article><p>Target markets</p><strong id="metric-countries">0</strong><span id="metric-country-note">Across primary focus areas</span></article>
         </section>
 
         <section class="insight-grid">
           <article class="chart-card">
-            <div class="section-heading"><h2>Roles by target country</h2><span class="data-label">TOP MARKET FOCUS</span></div>
+            <div class="section-heading">
+              <div>
+                <h2>Roles by target country</h2>
+                <p class="chart-subtitle" id="country-chart-subtitle">All active international tech markets</p>
+              </div>
+              <div class="chart-header-actions">
+                <span class="data-label" id="country-data-label">ALL MARKETS</span>
+                <button class="chart-action-btn" id="country-filter-clear-btn" style="display:none;" title="Clear country filter">✕ Clear filter</button>
+              </div>
+            </div>
+            <div class="country-bars-toolbar" id="country-bars-toolbar">
+              <div class="country-search-wrap">
+                <span>⌕</span>
+                <input type="search" id="country-search-input" placeholder="Search target country or market…" />
+              </div>
+              <div class="country-sort-toggle">
+                <button class="country-sort-btn active" id="sort-country-count" title="Sort by volume">By Volume</button>
+                <button class="country-sort-btn" id="sort-country-alpha" title="Sort alphabetically">A–Z</button>
+              </div>
+            </div>
             <div class="country-bars" id="country-bars"></div>
           </article>
           <article class="focus-card">
@@ -84,6 +105,12 @@
               <div class="search-wrap"><span>⌕</span><input type="search" id="search" placeholder="Search by title, company, skills…" /></div>
               <button class="filter-button" id="filter-button">Filter <span id="filter-count">0</span></button>
             </div>
+          </div>
+          <div class="status-tabs-bar" id="status-tabs-bar">
+            <button class="status-tab active" data-status-tab="all">All Roles (<span id="tab-count-all">0</span>)</button>
+            <button class="status-tab" data-status-tab="high">🔥 High Fit ≥85% (<span id="tab-count-high">0</span>)</button>
+            <button class="status-tab" data-status-tab="shortlisted">★ Shortlisted (<span id="tab-count-shortlisted">0</span>)</button>
+            <button class="status-tab status-tab-applied" data-status-tab="applied">✓ Applied (<span id="tab-count-applied">0</span>)</button>
           </div>
           <div class="date-tabs-bar" id="date-tabs-bar"></div>
           <div class="filters-panel" id="filters-panel" hidden>
