@@ -3,7 +3,7 @@
    Persistent Excel/CSV import with deduplication via IndexedDB
    ══════════════════════════════════════════════════════════════════════ */
 
-const SOURCE_FILE = 'full_crawl_jobs_20260804_103131.csv';
+const SOURCE_FILE = 'full_crawl_jobs.csv';
 const PAGE_SIZE = 12;
 const DB_NAME = 'job-compass-db';
 const DB_VERSION = 2;
@@ -11,8 +11,11 @@ const STORE_NAME = 'jobs';
 
 const state = { jobs: [], filtered: [], page: 1, sort: { key: 'Match Score', asc: false }, filters: { country: '', score: '', workplace: '', posted: '', recent: '', status: '' }, query: '', compact: false };
 const $ = (id) => document.getElementById(id);
-const esc = (value = '') => String(value).replace(/[&<>"']/g, (s) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'\&#039;' }[s]));
-const keyFor = (job) => job['Job URL'] || `${job.Company}|${job['Job Title']}|${job.Location}`;
+const esc = (value = '') => String(value).replace(/[&<>"']/g, (s) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[s]));
+const keyFor = (job) => {
+  const norm = normalizeLinkedInUrl(job['Job URL']);
+  return norm || `${job.Company}|${job['Job Title']}|${job.Location}`;
+};
 const shortlist = () => new Set(JSON.parse(localStorage.getItem('job-compass-shortlist') || '[]'));
 const saveShortlist = (keys) => localStorage.setItem('job-compass-shortlist', JSON.stringify([...keys]));
 
@@ -26,7 +29,6 @@ function openDB() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
-      // Drop old store if it exists (schema change)
       if (db.objectStoreNames.contains(STORE_NAME)) {
         db.deleteObjectStore(STORE_NAME);
       }
@@ -56,7 +58,7 @@ async function storeJobs(jobs) {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     for (const job of jobs) {
-      store.put(job);  // put = upsert on keyPath _dedupKey
+      store.put(job);
     }
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
@@ -77,22 +79,80 @@ async function clearStoredJobs() {
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   Deduplication
+   Deduplication Layer
    ══════════════════════════════════════════════════════════════════════ */
 
-/** Generate a dedup key for a job: prefer Job URL, else hash Company+Title+Location */
+/** Normalize LinkedIn URL to canonical https://www.linkedin.com/jobs/view/<ID> */
+function normalizeLinkedInUrl(url) {
+  const u = String(url || '').trim();
+  if (!u || ['n/a', 'none', 'nan', '', '-'].includes(u.toLowerCase())) return '';
+  const m = u.match(/\/jobs\/view\/(?:[^\s/?#]*-)?(\d{6,14})/);
+  if (m) return `https://www.linkedin.com/jobs/view/${m[1]}`;
+  const mParam = u.match(/[?&]currentJobId=(\d{6,14})/);
+  if (mParam) return `https://www.linkedin.com/jobs/view/${mParam[1]}`;
+  return u.split('#')[0].split('?')[0].replace(/\/+$/, '');
+}
+
+/** Generate a unique dedup key for a job */
 function dedupKey(job) {
-  const url = (job['Job URL'] || '').trim();
-  if (url) return `url:${url}`;
-  const company = (job.Company || '').trim().toLowerCase();
-  const title = (job['Job Title'] || '').trim().toLowerCase();
-  const location = (job.Location || '').trim().toLowerCase();
+  const normUrl = normalizeLinkedInUrl(job['Job URL']);
+  if (normUrl) return `url:${normUrl}`;
+  const company = String(job.Company || '').trim().toLowerCase().replace(/&amp;/g, '&');
+  const title = String(job['Job Title'] || '').trim().toLowerCase().replace(/&amp;/g, '&');
+  const location = String(job.Location || job.Country || '').trim().toLowerCase();
   return `combo:${company}|${title}|${location}`;
+}
+
+/** Deduplicate an array of jobs based on normalized LinkedIn URL and merge metadata */
+function deduplicateJobsArray(jobsList) {
+  if (!Array.isArray(jobsList)) return [];
+  const uniqueMap = new Map();
+
+  for (const job of jobsList) {
+    if (!job || !job['Job Title'] || job['Job Title'] === 'Job Title') continue;
+    const normUrl = normalizeLinkedInUrl(job['Job URL']);
+    const key = dedupKey(job);
+    const cleanJob = { ...job };
+    if (normUrl) cleanJob['Job URL'] = normUrl;
+    cleanJob._dedupKey = key;
+
+    if (uniqueMap.has(key)) {
+      const existing = uniqueMap.get(key);
+      // 1. Preserve Applied Status = Yes
+      const isApplied = String(cleanJob['Applied Status'] || cleanJob.Applied || '').trim().toLowerCase() === 'yes';
+      const existApplied = String(existing['Applied Status'] || existing.Applied || '').trim().toLowerCase() === 'yes';
+      if (isApplied || existApplied) {
+        existing['Applied Status'] = 'Yes';
+        existing.Applied = 'Yes';
+      }
+      // 2. Preserve Notes
+      if (cleanJob.Notes && !existing.Notes) {
+        existing.Notes = cleanJob.Notes;
+      }
+      // 3. Preserve earliest Crawl Date
+      const existDate = String(existing['Crawl Date'] || existing.Date || '');
+      const cleanDate = String(cleanJob['Crawl Date'] || cleanJob.Date || '');
+      if (cleanDate && (!existDate || cleanDate < existDate)) {
+        existing['Crawl Date'] = cleanDate;
+        existing.Date = cleanDate;
+      }
+      // 4. Backfill any missing fields
+      for (const [k, v] of Object.entries(cleanJob)) {
+        if (v && (!existing[k] || ['N/A', 'Unknown', '-', ''].includes(String(existing[k]).trim()))) {
+          existing[k] = v;
+        }
+      }
+    } else {
+      uniqueMap.set(key, cleanJob);
+    }
+  }
+
+  return Array.from(uniqueMap.values());
 }
 
 /** Tag each job with a _dedupKey field (used as IndexedDB keyPath) */
 function tagJobs(jobs) {
-  return jobs.map((job) => ({ ...job, _dedupKey: dedupKey(job) }));
+  return deduplicateJobsArray(jobs);
 }
 
 
@@ -233,10 +293,11 @@ function renderDateTabs() {
 }
 
 function loadJobs(jobs, sourceLabel = 'your export') {
-  state.jobs = jobs; state.page = 1;
+  const cleanJobs = deduplicateJobsArray(jobs);
+  state.jobs = cleanJobs; state.page = 1;
   state.filters = { country: '', score: '', workplace: '', recent: '', status: '' }; state.query = ''; $('search').value = '';
   populateFilters(); renderDateTabs(); renderAll(); updateStoredCount();
-  showToast(`Loaded ${jobs.length.toLocaleString()} opportunities from ${sourceLabel}.`);
+  showToast(`Loaded ${cleanJobs.length.toLocaleString()} opportunities from ${sourceLabel}.`);
 }
 
 function populateFilters() {
@@ -949,10 +1010,11 @@ async function fetchJobsFromGoogleSheet(silent = false) {
       })).filter((j) => j['Job Title'] && j['Job Title'] !== 'Job Title');
 
       if (normalizedJobs.length > 0) {
-        const tagged = tagJobs(normalizedJobs);
-        await storeJobs(tagged);
-        loadJobs(tagged, 'Google Sheets');
-        if (!silent) showToast(`Loaded ${tagged.length.toLocaleString()} opportunities live from Google Sheets!`);
+        const deduped = deduplicateJobsArray(normalizedJobs);
+        await clearStoredJobs();
+        await storeJobs(deduped);
+        loadJobs(deduped, 'Google Sheets');
+        if (!silent) showToast(`Loaded ${deduped.length.toLocaleString()} opportunities live from Google Sheets!`);
         return true;
       }
     }
@@ -1110,7 +1172,12 @@ async function initDashboardData() {
   try {
     const storedJobs = await loadStoredJobs();
     if (storedJobs.length > 0) {
-      loadJobs(storedJobs, 'stored data');
+      const deduped = deduplicateJobsArray(storedJobs);
+      if (deduped.length !== storedJobs.length) {
+        await clearStoredJobs();
+        await storeJobs(deduped);
+      }
+      loadJobs(deduped, 'stored data');
       return;
     }
   } catch { /* IndexedDB unavailable */ }
@@ -1123,9 +1190,9 @@ async function initDashboardData() {
       const text = await resp.text();
       const jobs = parseCSV(text);
       if (jobs.length) {
-        const tagged = tagJobs(jobs);
-        await storeJobs(tagged);
-        loadJobs(tagged, SOURCE_FILE);
+        const deduped = deduplicateJobsArray(jobs);
+        await storeJobs(deduped);
+        loadJobs(deduped, SOURCE_FILE);
         return;
       }
     } catch { /* CSV not available */ }

@@ -128,16 +128,28 @@ function doPost(e) {
         return responseJSON({ success: true, count: 0 });
       }
       
+function normalizeUrl(url) {
+  const u = String(url || '').trim();
+  if (!u || ['n/a', 'none', 'nan', '', '-'].includes(u.toLowerCase())) return '';
+  const m = u.match(/\/jobs\/view\/(?:[^\s/?#]*-)?(\d{6,14})/);
+  if (m) return `https://www.linkedin.com/jobs/view/${m[1]}`;
+  const mParam = u.match(/[?&]currentJobId=(\d{6,14})/);
+  if (mParam) return `https://www.linkedin.com/jobs/view/${mParam[1]}`;
+  return u.split('#')[0].split('?')[0].replace(/\/+$/, '');
+}
+
       const existingValues = sheet.getDataRange().getValues();
       const urlMap = new Map();
       const comboMap = new Map();
       
       for (let i = 1; i < existingValues.length; i++) {
         const row = existingValues[i];
-        const url = String(row[20] || '').trim();
-        const company = String(row[8] || '').trim().toLowerCase();
-        const title = String(row[9] || '').trim().toLowerCase();
-        if (url) urlMap.set(url, i);
+        const rawUrl = String(row[20] || '').trim();
+        const normUrl = normalizeUrl(rawUrl);
+        const company = String(row[8] || '').trim().toLowerCase().replace(/&amp;/g, '&');
+        const title = String(row[9] || '').trim().toLowerCase().replace(/&amp;/g, '&');
+        if (normUrl) urlMap.set(normUrl, i);
+        if (rawUrl) urlMap.set(rawUrl, i);
         if (company && title) comboMap.set(`${company}|${title}`, i);
       }
       
@@ -147,12 +159,14 @@ function doPost(e) {
       const rowsToAppend = [];
 
       jobs.forEach((job) => {
-        const url = (job['Job URL'] || '').trim();
+        const rawUrl = (job['Job URL'] || '').trim();
+        const normUrl = normalizeUrl(rawUrl);
+        const url = normUrl || rawUrl;
         const company = (job.Company || '').trim();
         const title = (job['Job Title'] || '').trim();
-        const comboKey = `${company.toLowerCase()}|${title.toLowerCase()}`;
+        const comboKey = `${company.toLowerCase().replace(/&amp;/g, '&')}|${title.toLowerCase().replace(/&amp;/g, '&')}`;
         
-        const existingRowIdx = (url && urlMap.get(url)) ?? comboMap.get(comboKey);
+        const existingRowIdx = (normUrl && urlMap.get(normUrl)) ?? (rawUrl && urlMap.get(rawUrl)) ?? comboMap.get(comboKey);
         
         const rawCrawlDate = job['Crawl Date'] || job.Date || today;
         const crawlDate = String(rawCrawlDate).split('T')[0] || today;
@@ -160,7 +174,7 @@ function doPost(e) {
         
         if (existingRowIdx !== undefined && existingRowIdx < existingValues.length) {
           const currentApplied = String(existingValues[existingRowIdx][18] || '').trim();
-          if (currentApplied.toLowerCase() === 'yes' && appliedStatus.toLowerCase() === 'no') {
+          if (currentApplied.toLowerCase() === 'yes' || appliedStatus.toLowerCase() === 'yes') {
             appliedStatus = 'Yes';
           }
         }
@@ -194,6 +208,8 @@ function doPost(e) {
           updated++;
         } else {
           rowsToAppend.push(rowData);
+          if (normUrl) urlMap.set(normUrl, existingValues.length + rowsToAppend.length - 1);
+          if (comboKey) comboMap.set(comboKey, existingValues.length + rowsToAppend.length - 1);
           added++;
         }
       });
