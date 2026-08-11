@@ -717,6 +717,63 @@ def filter_target_countries(targets: list, countries_filter) -> list:
         "middle east": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
         "gulf": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
         "gulf cities": ["United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
+
+        # Netherlands hubs & cities
+        "netherlands": ["Netherlands"],
+        "holland": ["Netherlands"],
+        "amsterdam": ["Netherlands"],
+        "rotterdam": ["Netherlands"],
+        "the hague": ["Netherlands"],
+        "utrecht": ["Netherlands"],
+        "eindhoven": ["Netherlands"],
+
+        # Ireland hubs & cities
+        "ireland": ["Ireland"],
+        "dublin": ["Ireland"],
+        "cork": ["Ireland"],
+        "galway": ["Ireland"],
+
+        # France hubs & cities
+        "france": ["France"],
+        "paris": ["France"],
+        "lyon": ["France"],
+        "toulouse": ["France"],
+
+        # Australia hubs & cities
+        "australia": ["Australia"],
+        "sydney": ["Australia"],
+        "melbourne": ["Australia"],
+        "brisbane": ["Australia"],
+        "perth": ["Australia"],
+
+        # Singapore / Malaysia / New Zealand
+        "singapore": ["Singapore"],
+        "malaysia": ["Malaysia"],
+        "kuala lumpur": ["Malaysia"],
+        "new zealand": ["New Zealand"],
+        "auckland": ["New Zealand"],
+        "wellington": ["New Zealand"],
+
+        # Poland / Portugal / Belgium / Austria / Nordics
+        "poland": ["Poland"],
+        "warsaw": ["Poland"],
+        "krakow": ["Poland"],
+        "wroclaw": ["Poland"],
+        "portugal": ["Portugal"],
+        "lisbon": ["Portugal"],
+        "porto": ["Portugal"],
+        "belgium": ["Belgium"],
+        "brussels": ["Belgium"],
+        "antwerp": ["Belgium"],
+        "austria": ["Austria"],
+        "vienna": ["Austria"],
+        "sweden": ["Sweden"],
+        "stockholm": ["Sweden"],
+        "gothenburg": ["Sweden"],
+        "denmark": ["Denmark"],
+        "copenhagen": ["Denmark"],
+        "finland": ["Finland"],
+        "helsinki": ["Finland"],
     }
 
     target_names = set()
@@ -1261,8 +1318,8 @@ def extract_city(loc_str):
     return "Other Locations"
 
 
-def sync_to_google_sheets(df: pd.DataFrame):
-    """Sync job dataframe to Google Sheets Webhook if configured."""
+def sync_to_google_sheets(df: pd.DataFrame, chunk_size: int = 100, max_retries: int = 3):
+    """Sync job dataframe to Google Sheets Webhook with per-batch retries and resilience."""
     webhook_url = os.environ.get("GOOGLE_SHEETS_WEBHOOK_URL", "").strip()
     if not webhook_url and CONFIG_PATH.exists():
         try:
@@ -1277,28 +1334,49 @@ def sync_to_google_sheets(df: pd.DataFrame):
         return
 
     log("\nSyncing data to Google Sheets …", "INFO")
-    try:
-        clean_jobs = df.fillna("").to_dict(orient="records")
-        total_jobs = len(clean_jobs)
-        chunk_size = 250
+    clean_jobs = df.fillna("").to_dict(orient="records")
+    total_jobs = len(clean_jobs)
+    total_batches = (total_jobs + chunk_size - 1) // chunk_size
+    success_batches = 0
+    failed_batches = 0
+
+    for i in range(0, total_jobs, chunk_size):
+        batch_num = i // chunk_size + 1
+        chunk = clean_jobs[i:i + chunk_size]
+        payload = {
+            "action": "sync_jobs",
+            "jobs": chunk
+        }
         
-        for i in range(0, total_jobs, chunk_size):
-            chunk = clean_jobs[i:i + chunk_size]
-            payload = {
-                "action": "sync_jobs",
-                "jobs": chunk
-            }
-            log(f"   Syncing batch {i // chunk_size + 1}/{(total_jobs + chunk_size - 1) // chunk_size} ({len(chunk)} jobs) …", "INFO")
-            res = requests.post(webhook_url, json=payload, timeout=30)
-            if res.status_code == 200:
-                log(f"   Batch synced → {res.text[:100]}", "OK")
-            else:
-                log(f"   Batch failed HTTP {res.status_code}: {res.text[:100]}", "WARN")
-            time.sleep(0.5)
+        batch_synced = False
+        for attempt in range(1, max_retries + 1):
+            try:
+                log(f"   Syncing batch {batch_num}/{total_batches} ({len(chunk)} jobs){f' [attempt {attempt}/{max_retries}]' if attempt > 1 else ''} …", "INFO")
+                res = requests.post(webhook_url, json=payload, timeout=60)
+                if res.status_code == 200:
+                    log(f"   Batch {batch_num}/{total_batches} synced → {res.text[:100]}", "OK")
+                    batch_synced = True
+                    success_batches += 1
+                    break
+                else:
+                    log(f"   Batch {batch_num} failed HTTP {res.status_code}: {res.text[:100]}", "WARN")
+            except requests.exceptions.RequestException as req_err:
+                log(f"   Batch {batch_num} attempt {attempt} error: {req_err}", "WARN")
             
-        log(f"Google Sheets sync complete: {total_jobs} total jobs processed.", "OK")
-    except Exception as err:
-        log(f"Google Sheets sync error: {err}", "WARN")
+            if attempt < max_retries:
+                backoff = attempt * 2
+                time.sleep(backoff)
+
+        if not batch_synced:
+            failed_batches += 1
+            log(f"   Batch {batch_num} failed after {max_retries} attempts — continuing next batch.", "WARN")
+        else:
+            time.sleep(0.5)
+
+    if failed_batches == 0:
+        log(f"✅ Google Sheets sync complete: all {total_jobs} jobs ({success_batches}/{total_batches} batches) synced successfully.", "OK")
+    else:
+        log(f"⚠️ Google Sheets sync completed with {failed_batches} failed batches ({success_batches}/{total_batches} succeeded).", "WARN")
 
 
 def save_csv(all_jobs: list) -> pd.DataFrame:
@@ -1695,32 +1773,65 @@ def main():
                         help="Country names to scrape (e.g. netherlands ireland)")
     parser.add_argument("--max-per-keyword", type=int, default=999,
                         help="Max jobs per keyword per country (default: 999 = all)")
-    parser.add_argument("--time-window", "--time-posted", type=str, default="24h",
-                        help="Time window: 24h/1d (past 24 hrs), 1w/7d (past week), 1m/30d (past month), all")
+    parser.add_argument("--time-window", "--time-posted", type=str, default=None,
+                        help="Time window: 24h/1d (24 hrs), 2d/48h (2 days), 1w/7d (past week), 1m/30d (past month), all")
+    parser.add_argument("--days", type=int, default=None,
+                        help="Number of past days to crawl (e.g. --days 2 for last 2 days)")
+    parser.add_argument("--sync-only", "--retry-sync", action="store_true",
+                        help="Only sync existing master CSV to Google Sheets without crawling")
     parser.add_argument("--skip-linkedin",   action="store_true")
     parser.add_argument("--skip-apis",       action="store_true")
     args = parser.parse_args()
 
+    if args.sync_only:
+        if MASTER_CSV_PATH.exists():
+            log(f"Sync-only mode: loading master CSV → {MASTER_CSV_PATH}", "INFO")
+            jobs_df = pd.read_csv(MASTER_CSV_PATH, on_bad_lines="skip")
+            jobs_df.dropna(subset=["Job URL"], inplace=True)
+            sync_to_google_sheets(jobs_df, chunk_size=100)
+            log("Google Sheets sync process finished.", "OK")
+            return
+        else:
+            log(f"Master CSV not found at {MASTER_CSV_PATH}", "ERROR")
+            return
+
     headless         = not args.no_headless
     countries_filter = [c.lower() for c in args.countries] if args.countries else None
     
-    # Map time window argument to LinkedIn f_TPR parameter
-    tw = (args.time_window or "24h").lower().strip()
-    if tw in {"24h", "1d", "1day", "day"}:
-        time_posted_range = "r86400"
-        tw_label = "Past 24 Hours (1 Day)"
-    elif tw in {"1w", "1week", "week", "7d"}:
-        time_posted_range = "r604800"
-        tw_label = "Past 1 Week (7 Days)"
-    elif tw in {"1m", "1month", "month", "30d"}:
-        time_posted_range = "r2592000"
-        tw_label = "Past 1 Month (30 Days)"
-    elif tw in {"all", "any"}:
-        time_posted_range = ""
-        tw_label = "All Time"
+    # Map time window / days argument to LinkedIn f_TPR parameter
+    if args.days is not None:
+        secs = args.days * 86400
+        time_posted_range = f"r{secs}"
+        tw_label = f"Past {args.days} Day{'s' if args.days != 1 else ''} ({args.days * 24} Hours)"
     else:
-        time_posted_range = "r86400"
-        tw_label = "Past 24 Hours (1 Day)"
+        tw = (args.time_window or "24h").lower().replace("_", " ").strip()
+        m_days = re.search(r"^(\d+)\s*(?:d|day|days)$", tw)
+        m_hrs  = re.search(r"^(\d+)\s*(?:h|hr|hrs|hour|hours)$", tw)
+        m_wks  = re.search(r"^(\d+)\s*(?:w|wk|wks|week|weeks)$", tw)
+        m_mos  = re.search(r"^(\d+)\s*(?:m|mo|mos|month|months)$", tw)
+        
+        if m_days:
+            n = int(m_days.group(1))
+            time_posted_range = f"r{n * 86400}"
+            tw_label = f"Past {n} Day{'s' if n != 1 else ''} ({n * 24} Hours)"
+        elif m_hrs:
+            n = int(m_hrs.group(1))
+            time_posted_range = f"r{n * 3600}"
+            tw_label = f"Past {n} Hour{'s' if n != 1 else ''}"
+        elif m_wks:
+            n = int(m_wks.group(1))
+            time_posted_range = f"r{n * 604800}"
+            tw_label = f"Past {n} Week{'s' if n != 1 else ''} ({n * 7} Days)"
+        elif m_mos:
+            n = int(m_mos.group(1))
+            time_posted_range = f"r{n * 2592000}"
+            tw_label = f"Past {n} Month{'s' if n != 1 else ''} ({n * 30} Days)"
+        elif tw in {"all", "any", "all time"}:
+            time_posted_range = ""
+            tw_label = "All Time"
+        else:
+            time_posted_range = "r86400"
+            tw_label = "Past 24 Hours (1 Day)"
 
     log("=" * 65)
     log("🚀  full_crawl_to_word.py  v2  (Voyager API + DOM fallback)")
