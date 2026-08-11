@@ -229,10 +229,100 @@ def normalise_posted_date(value) -> str:
     return raw
 
 
+def normalize_linkedin_url(url: str) -> str:
+    """Normalize LinkedIn job URLs to canonical https://www.linkedin.com/jobs/view/<JOB_ID> format."""
+    u = str(url or "").strip()
+    if not u or u.lower() in {"n/a", "none", "nan", ""}:
+        return ""
+
+    # Match numeric LinkedIn Job ID from /jobs/view/ or /jobs/view/title-slug-123456789
+    m = re.search(r"/jobs/view/(?:[^\s/?#]*-)?(\d{6,14})", u)
+    if m:
+        return f"https://www.linkedin.com/jobs/view/{m.group(1)}"
+
+    # Match ?currentJobId=1234567890
+    m_param = re.search(r"[?&]currentJobId=(\d{6,14})", u)
+    if m_param:
+        return f"https://www.linkedin.com/jobs/view/{m_param.group(1)}"
+
+    # Strip query parameters and fragments for other job board URLs
+    clean = u.split("#")[0]
+    base = clean.split("?")[0].rstrip("/")
+    if base.startswith("http://"):
+        base = "https://" + base[7:]
+    return base
+
+
 def dedup_key(company: str, title: str) -> str:
     return hashlib.md5(
         f"{str(company).strip().lower()}|{str(title).strip().lower()}".encode()
     ).hexdigest()
+
+
+def deduplicate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Deduplicate dataframe based on normalized LinkedIn URL (primary key),
+    with secondary fallback to (Company + Job Title) when URL is missing.
+    
+    Intelligently preserves:
+      - 'Applied Status' = 'Yes' if any duplicate was applied.
+      - User notes.
+      - Earliest discovery/crawl date.
+      - Non-empty values across all columns.
+    """
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    records = df.to_dict(orient="records")
+    unique_map = {}
+    dupes_removed = 0
+
+    for rec in records:
+        raw_url = str(rec.get("Job URL", "")).strip()
+        norm_url = normalize_linkedin_url(raw_url)
+
+        if norm_url:
+            key = f"URL:{norm_url}"
+            rec["Job URL"] = norm_url
+        else:
+            comp = str(rec.get("Company", "")).strip().lower()
+            title = str(rec.get("Job Title", "")).strip().lower()
+            loc = str(rec.get("Location", rec.get("Country", ""))).strip().lower()
+            key = f"TITLE:{comp}|{title}|{loc}"
+
+        if key in unique_map:
+            dupes_removed += 1
+            existing = unique_map[key]
+
+            # Preserve Applied Status = Yes
+            if str(rec.get("Applied Status", "")).strip().lower() == "yes" or \
+               str(rec.get("Applied", "")).strip().lower() == "yes":
+                existing["Applied Status"] = "Yes"
+                existing["Applied"] = "Yes"
+
+            # Preserve Notes
+            if rec.get("Notes") and not existing.get("Notes"):
+                existing["Notes"] = rec["Notes"]
+
+            # Preserve earliest Crawl Date
+            existing_date = str(existing.get("Crawl Date", existing.get("Date", "")))
+            rec_date = str(rec.get("Crawl Date", rec.get("Date", "")))
+            if rec_date and (not existing_date or rec_date < existing_date):
+                existing["Crawl Date"] = rec_date
+                existing["Date"] = rec_date
+
+            # Backfill any missing fields
+            for k, v in rec.items():
+                if v and (not existing.get(k) or str(existing.get(k)).strip() in {"", "N/A", "Unknown"}):
+                    existing[k] = v
+        else:
+            unique_map[key] = rec
+
+    if dupes_removed > 0:
+        log(f"Removed {dupes_removed} duplicate job records based on LinkedIn URL.", "INFO")
+
+    deduped_df = pd.DataFrame(list(unique_map.values()))
+    return deduped_df
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1682,8 +1772,12 @@ def generate_word(jobs_df: pd.DataFrame):
 # ══════════════════════════════════════════════════════════════════════
 
 def save_excel(df: pd.DataFrame):
-    if not HAS_EXCEL or df.empty:
+    if not HAS_EXCEL or df is None or df.empty:
         return
+
+    # Strictly deduplicate jobs on LinkedIn URL before writing to Excel
+    clean_df = deduplicate_dataframe(df)
+
     log("\nGenerating multi-sheet Excel (Master + Date Tabs) …")
     wb = openpyxl.Workbook()
     if "Sheet" in wb.sheetnames:
@@ -1736,16 +1830,16 @@ def save_excel(df: pd.DataFrame):
 
     # 1. Master Sheet "All Jobs"
     ws_all = wb.create_sheet(title="All Jobs")
-    populate_sheet(ws_all, df)
+    populate_sheet(ws_all, clean_df)
 
     # 2. Date-based sheets
-    date_col = "Crawl Date" if "Crawl Date" in df.columns else ("Date" if "Date" in df.columns else None)
+    date_col = "Crawl Date" if "Crawl Date" in clean_df.columns else ("Date" if "Date" in clean_df.columns else None)
     if date_col:
-        unique_dates = sorted(df[date_col].dropna().astype(str).str.split("T").str[0].unique(), reverse=True)
+        unique_dates = sorted(clean_df[date_col].dropna().astype(str).str.split("T").str[0].unique(), reverse=True)
         for date_str in unique_dates:
             if not date_str or len(date_str) < 5 or date_str == "nan":
                 continue
-            sub = df[df[date_col].astype(str).str.startswith(date_str)]
+            sub = clean_df[clean_df[date_col].astype(str).str.startswith(date_str)]
             if not sub.empty:
                 ws_date = wb.create_sheet(title=date_str[:31])
                 populate_sheet(ws_date, sub)
