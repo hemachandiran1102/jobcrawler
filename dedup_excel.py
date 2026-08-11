@@ -40,28 +40,35 @@ def log(msg, level="INFO"):
     print(f"[{ts}] {icon}  {safe}", flush=True)
 
 
-def normalize_linkedin_url(url: str) -> str:
+def normalize_job_url(url: str) -> str:
     """
-    Extract canonical LinkedIn Job URL:
-      https://www.linkedin.com/jobs/view/<JOB_ID>
-    
-    Handles query parameters, tracking IDs, vanity slugs, http/https, etc.
+    Extract canonical Job URL across LinkedIn, Indeed, Glassdoor, and other boards:
+      - LinkedIn:  https://www.linkedin.com/jobs/view/<JOB_ID>
+      - Indeed:    https://www.indeed.com/viewjob?jk=<JK_ID>
+      - Glassdoor: https://www.glassdoor.com/job-listing/?jl=<JL_ID>
     """
     u = str(url or "").strip()
     if not u or u.lower() in {"n/a", "none", "nan", "", "-"}:
         return ""
 
-    # Match numeric LinkedIn Job ID from /jobs/view/ or /jobs/view/title-slug-123456789
+    # Indeed: jk query parameter
+    m_indeed = re.search(r"[?&]jk=([a-zA-Z0-9]+)", u)
+    if m_indeed:
+        return f"https://www.indeed.com/viewjob?jk={m_indeed.group(1)}"
+
+    # Glassdoor: jl parameter
+    m_gd = re.search(r"(?:jl=|jobListingId=|job-listing/.*?jl=)(\d+)", u)
+    if m_gd:
+        return f"https://www.glassdoor.com/job-listing/?jl={m_gd.group(1)}"
+
+    # LinkedIn: numeric job ID
     m = re.search(r"/jobs/view/(?:[^\s/?#]*-)?(\d{6,14})", u)
     if m:
         return f"https://www.linkedin.com/jobs/view/{m.group(1)}"
-
-    # Match ?currentJobId=1234567890
     m_param = re.search(r"[?&]currentJobId=(\d{6,14})", u)
     if m_param:
         return f"https://www.linkedin.com/jobs/view/{m_param.group(1)}"
 
-    # Strip query parameters and fragments for other job URLs
     clean = u.split("#")[0]
     base = clean.split("?")[0].rstrip("/")
     if base.startswith("http://"):
@@ -71,7 +78,7 @@ def normalize_linkedin_url(url: str) -> str:
 
 def deduplicate_records(records: list) -> tuple:
     """
-    Deduplicate a list of job dicts based on normalized LinkedIn URL.
+    Deduplicate a list of job dicts based on normalized Job URL.
     Returns (deduped_records, duplicates_removed_count).
     """
     unique_map = {}
@@ -79,7 +86,7 @@ def deduplicate_records(records: list) -> tuple:
 
     for rec in records:
         raw_url = str(rec.get("Job URL", rec.get("Job Link", rec.get("Link", "")))).strip()
-        norm_url = normalize_linkedin_url(raw_url)
+        norm_url = normalize_job_url(raw_url)
 
         if norm_url:
             key = f"URL:{norm_url}"

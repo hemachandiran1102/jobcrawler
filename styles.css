@@ -329,6 +329,25 @@ body.dark .modal-input { background: #111a2d; border-color: #273451; color: #fff
   .queue-master-bar { flex-direction: column; align-items: stretch; }
   .queue-center { overflow-x: auto; }
 }
-@media (max-width: 480px) {
-  .metrics { grid-template-columns: 1fr; }
+/* ── Source Badges (Indeed / Glassdoor) ── */
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.source-indeed {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+}
+.source-glassdoor {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }

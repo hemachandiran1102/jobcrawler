@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Compass — Indeed & Glassdoor Opportunities</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <!-- Authentication Overlay -->
+    <div class="auth-overlay" id="auth-overlay" hidden>
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-brand"><span class="brand-mark">J</span><span>job<span>compass</span></span></div>
+          <h2 id="auth-title">🔐 Protected Access</h2>
+          <p id="auth-subtitle">Enter your master password to unlock your Indeed & Glassdoor job board.</p>
+        </div>
+        <div id="auth-error" class="auth-error" hidden></div>
+        <form id="auth-form">
+          <div class="auth-field">
+            <label for="auth-password">Master Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="auth-password" placeholder="Enter master password…" required autocomplete="current-password" />
+              <button type="button" class="password-toggle-btn" id="toggle-auth-password" title="Toggle password visibility">👁️</button>
+            </div>
+            <div class="strength-bar" id="password-strength-bar" hidden><div id="strength-fill"></div></div>
+          </div>
+          <div class="auth-field" id="auth-confirm-wrapper" hidden>
+            <label for="auth-confirm-password">Confirm Password</label>
+            <input type="password" id="auth-confirm-password" placeholder="Re-enter master password…" autocomplete="new-password" />
+          </div>
+          <button type="submit" class="auth-submit-btn" id="auth-submit-btn">Unlock Dashboard →</button>
+        </form>
+        <div class="auth-footer">Protected by AES-256 / SHA-256 Client Security</div>
+      </div>
+    </div>
+
+    <!-- Application Shell -->
+    <div class="shell" id="app-shell">
+      <aside class="sidebar">
+        <a href="index.html" class="brand"><span class="brand-mark">J</span><span>job<span>compass</span></span></a>
+        <nav class="nav">
+          <a href="index.html" title="Switch to LinkedIn Opportunities"><span>💼</span>LinkedIn Board</a>
+          <a href="indeed_glassdoor.html" class="active" title="Indeed & Glassdoor Board"><span>🌐</span>Indeed & Glassdoor <b id="nav-ig-total" style="background:#2563eb; color:#ffffff;">0</b></a>
+          <a href="#roles" id="nav-roles-link"><span>📋</span>Opportunity Queue <b id="nav-all">0</b></a>
+          <a href="#roles" id="nav-shortlist-link"><span>★</span>Shortlist <b id="nav-shortlist">0</b></a>
+          <a href="#roles" id="nav-applied-link"><span>✓</span>Applied <b id="nav-applied" class="nav-applied-badge">0</b></a>
+        </nav>
+        <div class="sidebar-bottom">
+          <input type="file" id="file-input" accept=".csv,.xlsx,.xls" hidden />
+          <button class="import-button sidebar-import" id="sidebar-import-button"><span>+</span> Import Export</button>
+          <p id="stored-count" class="stored-count">0 opportunities stored</p>
+          <button class="clear-data-button" id="clear-data-button">Clear stored data</button>
+          <p>Decisions are saved privately in this browser.</p>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div class="crumb">JOB SEARCH <i>/</i> <strong>INDEED & GLASSDOOR BOARD</strong></div>
+          <div class="top-actions">
+            <span class="saved-state"><i></i>Auto-saved</span>
+            <button class="icon-button" id="lock-header-btn" title="Lock dashboard">🔒</button>
+            <button class="icon-button" id="theme-toggle" aria-label="Toggle theme">◐</button>
+            <button class="mobile-menu" id="mobile-menu-btn">☰</button>
+          </div>
+        </header>
+
+        <section class="hero">
+          <div>
+            <p class="eyebrow">INDEED & GLASSDOOR INTELLIGENCE</p>
+            <h1>Discover your next <em>global career move.</em></h1>
+            <p class="hero-copy" id="dataset-summary">Multi-board engineering intelligence covering 22 international markets across Indeed and Glassdoor.</p>
+          </div>
+          <div class="hero-actions">
+            <button class="import-button" id="import-button"><span>+</span> Import new export</button>
+            <div class="view-toggle">
+              <button class="active" id="table-view-button" title="Standard view">☵</button>
+              <button id="compact-view-button" title="Compact view">☶</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Metrics Grid -->
+        <section class="metrics">
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-badge">TOTAL</span></div>
+            <strong id="metric-total">0</strong>
+            <span class="metric-note" id="metric-total-note">0 companies represented</span>
+          </article>
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-badge badge-match">MATCH ≥85%</span></div>
+            <strong id="metric-high-match">0</strong>
+            <span class="metric-note">Top fit for your background</span>
+          </article>
+          <article class="metric-card clickable card-applied" id="metric-applied-card" title="Click to view all applied jobs">
+            <div class="metric-head"><span class="metric-badge badge-applied">APPLIED</span><span class="card-action-icon">↗</span></div>
+            <strong id="metric-applied" class="metric-applied-val">0</strong>
+            <span class="metric-note" id="metric-applied-note">0% submitted · Click to filter</span>
+          </article>
+          <article class="metric-card clickable card-shortlist" id="metric-shortlisted-card" title="Click to view shortlisted roles">
+            <div class="metric-head"><span class="metric-badge badge-shortlist">SHORTLIST</span><span class="card-action-icon">↗</span></div>
+            <strong id="metric-shortlisted" class="metric-shortlist-val">0</strong>
+            <span class="metric-note" id="metric-shortlist-note">Your roles to revisit</span>
+          </article>
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-badge">MARKETS</span></div>
+            <strong id="metric-countries">0</strong>
+            <span class="metric-note" id="metric-country-note">Across primary focus areas</span>
+          </article>
+        </section>
+
+        <!-- Insight Grid -->
+        <section class="insight-grid">
+          <article class="chart-card">
+            <div class="chart-card-top">
+              <div class="chart-card-title-group">
+                <div class="title-with-pill">
+                  <h2>Roles by target country</h2>
+                  <span class="market-count-pill" id="country-data-label">22 MARKETS</span>
+                </div>
+                <p class="chart-subtitle" id="country-chart-subtitle">All active international tech markets</p>
+              </div>
+              <div class="chart-controls-group">
+                <div class="chart-search-wrap">
+                  <span>⌕</span>
+                  <input type="text" id="country-search-input" placeholder="Search country…" />
+                </div>
+                <div class="chart-sort-toggle">
+                  <button class="sort-toggle-btn active" id="sort-country-count" title="Sort by volume">Volume</button>
+                  <button class="sort-toggle-btn" id="sort-country-alpha" title="Sort alphabetically">A–Z</button>
+                </div>
+                <button class="clear-country-filter" id="country-filter-clear-btn" style="display:none;" title="Clear country filter">✕</button>
+              </div>
+            </div>
+            <div class="country-bars-scroll" id="country-bars"></div>
+          </article>
+          <article class="focus-card">
+            <p class="eyebrow">FEATURED FIT</p>
+            <div class="focus-score" id="focus-score">0<small>%</small></div>
+            <h2 id="focus-title">No role selected</h2>
+            <p id="focus-company">Import export data to surface standout opportunities.</p>
+            <button id="view-best-fit">Focus top role <span>→</span></button>
+          </article>
+        </section>
+
+        <!-- Opportunity Queue -->
+        <section class="roles-section" id="roles">
+          <div class="queue-master-bar">
+            <div class="queue-left">
+              <h2>Opportunity queue <span class="queue-count-badge" id="visible-count">0</span></h2>
+            </div>
+            <div class="queue-center">
+              <div class="status-tabs-bar" id="status-tabs-bar">
+                <button class="status-pill active" data-status-tab="all">All Roles</button>
+                <button class="status-pill pill-match" data-status-tab="high">🔥 Match ≥85%</button>
+                <button class="status-pill" data-status-tab="indeed" style="color:#003a9b;">Indeed (<span id="tab-count-indeed">0</span>)</button>
+                <button class="status-pill" data-status-tab="glassdoor" style="color:#0caa41;">Glassdoor (<span id="tab-count-glassdoor">0</span>)</button>
+                <button class="status-pill pill-applied" data-status-tab="applied">✓ Applied <b id="tab-count-applied">0</b></button>
+                <button class="status-pill pill-shortlist" data-status-tab="shortlisted">★ Shortlisted <b id="tab-count-shortlisted">0</b></button>
+              </div>
+            </div>
+            <div class="queue-right">
+              <div class="search-wrap">
+                <span>⌕</span>
+                <input type="search" id="search" placeholder="Search title, company, skill…" />
+              </div>
+              <button class="filter-button" id="filter-button">Filter <span id="filter-count">0</span></button>
+            </div>
+          </div>
+
+          <div class="timeline-strip">
+            <span class="timeline-label">CRAWL DATE:</span>
+            <div class="date-tabs-bar" id="date-tabs-bar"></div>
+          </div>
+
+          <div class="filters-panel" id="filters-panel" hidden>
+            <label>Country<select id="country-filter"><option value="">All countries</option></select></label>
+            <label>Source<select id="source-filter"><option value="">All sources</option><option value="indeed">Indeed</option><option value="glassdoor">Glassdoor</option></select></label>
+            <label>Match Score<select id="score-filter"><option value="">Any score</option><option value="85">85%+ Top match</option><option value="70">70%+ Good match</option></select></label>
+            <label>Workplace<select id="workplace-filter"><option value="">Any workplace</option></select></label>
+            <label>Job Posted<select id="posted-filter"><option value="">Any posted date</option><option value="1">Past 24 hours</option><option value="2">Past 2 days</option><option value="7">Past 7 days</option><option value="14">Past 14 days</option><option value="30">Past 30 days</option></select></label>
+            <label>Crawl Date<select id="recent-filter"><option value="">All crawl dates</option><option value="1">Past 24 hours</option><option value="7">Past 7 days</option><option value="30">Past 30 days</option></select></label>
+            <label>Status<select id="status-filter"><option value="">All roles</option><option value="shortlisted">Shortlisted</option><option value="applied">Applied</option><option value="not-applied">Not Applied</option></select></label>
+            <button class="clear-filters" id="clear-filters">Clear all</button>
+          </div>
+          <div class="active-filters" id="active-filters"></div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="bookmark-cell">★</th>
+                  <th>Role / Company</th>
+                  <th>Source</th>
+                  <th>Country</th>
+                  <th>Posted Date</th>
+                  <th>Crawl Date</th>
+                  <th>Workplace</th>
+                  <th>Match</th>
+                  <th>Applied</th>
+                  <th>Link</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-body">
+                <tr><td colspan="10" class="empty">Loading Indeed & Glassdoor opportunities…</td></tr>
+              </tbody>
+            </table>
+            <footer class="table-footer">
+              <p id="page-info">Showing 0 roles</p>
+              <div class="pagination">
+                <button id="previous-page" aria-label="Previous page">←</button>
+                <div id="page-buttons"></div>
+                <button id="next-page" aria-label="Next page">→</button>
+              </div>
+            </footer>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="loading-overlay" id="loading-overlay" hidden>
+      <div class="loading-spinner"><div class="spinner"></div><p id="loading-text">Loading…</p></div>
+    </div>
+
+    <script src="app_indeed_glassdoor.js"></script>
+  </body>
+</html>
