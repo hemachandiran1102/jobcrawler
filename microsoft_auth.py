@@ -96,11 +96,11 @@ def get_microsoft_access_token(account_email: str, interactive: bool = True) -> 
     expires_in = int(dev_resp.get("expires_in", 900))
 
     print("\n" + "=" * 65)
-    print(f"  🔐 MICROSOFT MODERN AUTHENTICATION — {account_email}")
+    print(f"  [AUTH] MICROSOFT MODERN AUTHENTICATION -- {account_email}")
     print(f"  1. Open: {verification_uri}")
     print(f"  2. Enter Code: {user_code}")
     print(f"  3. Sign in to your Hotmail/Outlook account ({account_email})")
-    print("=" * 65 + "\n")
+    print("=" * 65 + "\n", flush=True)
 
     # Poll for token
     start_time = time.time()
