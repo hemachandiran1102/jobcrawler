@@ -628,6 +628,7 @@ function renderInboundPipeline() {
         <p class="inbound-snippet">${esc(item['Email Snippet'] || item.Subject || 'No snippet available.')}</p>
 
         <div class="inbound-actions">
+          <button class="inbound-btn inbound-btn-view" onclick="openEmailModal(${idx})">📖 View Full Email</button>
           ${hasBookingLink ? `<a href="${esc(actionUrl)}" target="_blank" rel="noopener noreferrer" class="inbound-btn inbound-btn-primary">📅 Book Call / Test →</a>` : ''}
           <a href="${mailtoLink}" class="inbound-btn inbound-btn-reply">✉️ Reply Email</a>
           <button class="inbound-btn inbound-btn-done ${item['Replied Status'] === 'Yes' ? 'is-done' : ''}" onclick="toggleInboundDone(${idx})">
@@ -643,6 +644,104 @@ function renderInboundPipeline() {
     `;
   }).join('');
 }
+
+window.openEmailModal = (idx) => {
+  const item = state.inbound && state.inbound[idx];
+  if (!item) return;
+
+  const modal = $('inbound-email-modal');
+  if (!modal) return;
+
+  const cat = item.Category || 'General';
+  let icon = '📬';
+  if (cat === 'Interview Invitation') icon = '🟢';
+  else if (cat === 'Technical Assessment') icon = '🔵';
+  else if (cat.includes('Availability')) icon = '🟡';
+  else if (cat === 'Rejection') icon = '🔴';
+
+  const iconEl = $('modal-email-icon');
+  const titleEl = $('modal-email-title');
+  if (iconEl) iconEl.textContent = icon;
+  if (titleEl) titleEl.textContent = item.Subject || `${item.Company} - Next Steps`;
+
+  const sender = item.Sender || 'Recruiter';
+  const cleanSenderEmail = (sender.match(/<([^>]+)>/) || [null, sender])[1].trim();
+  const accountName = item.Account || 'Email Inbox';
+  const inboxEmail = item['Inbox Email'] || '';
+  const dateReceived = item['Date Received'] || '';
+  const lang = item.Language || 'English';
+
+  const metaEl = $('modal-email-meta');
+  if (metaEl) {
+    metaEl.innerHTML = `
+      <div class="email-modal-meta-item">
+        <span class="email-modal-meta-label">From</span>
+        <span class="email-modal-meta-val">${esc(sender)}</span>
+      </div>
+      <div class="email-modal-meta-item">
+        <span class="email-modal-meta-label">To / Inbox</span>
+        <span class="email-modal-meta-val">${esc(accountName)} ${inboxEmail ? `(${esc(inboxEmail)})` : ''}</span>
+      </div>
+      <div class="email-modal-meta-item">
+        <span class="email-modal-meta-label">Company & Role</span>
+        <span class="email-modal-meta-val"><b>${esc(item.Company || 'Company')}</b> — ${esc(item['Job Title'] || 'Role')}</span>
+      </div>
+      <div class="email-modal-meta-item">
+        <span class="email-modal-meta-label">Date & Language</span>
+        <span class="email-modal-meta-val">📅 ${esc(dateReceived)} · 🌐 ${esc(lang)}</span>
+      </div>
+    `;
+  }
+
+  const actBox = $('modal-email-action-box');
+  if (actBox) {
+    actBox.innerHTML = `
+      <span>⚡</span>
+      <div><b>Action Required:</b> ${esc(item['Action Required'] || 'Review recruiter email')}</div>
+    `;
+  }
+
+  const textEl = $('modal-email-full-text');
+  if (textEl) {
+    const fullBody = item['Full Email Body'] || item['Email Snippet'] || item.Subject || 'No email text available.';
+    textEl.textContent = fullBody;
+  }
+
+  const linksSec = $('modal-email-links-section');
+  const linksList = $('modal-email-links-list');
+  const allLinksStr = item['All Links'] || item['Action URL'] || '';
+  const links = allLinksStr.split('|').map((s) => s.trim()).filter((s) => /^https?:\/\//i.test(s));
+
+  if (linksSec && linksList) {
+    if (links.length > 0) {
+      linksSec.style.display = 'block';
+      linksList.innerHTML = links.map((l) => `<a href="${esc(l)}" target="_blank" rel="noopener noreferrer" class="email-link-chip">🔗 ${esc(l)}</a>`).join('');
+    } else {
+      linksSec.style.display = 'none';
+    }
+  }
+
+  const actionUrl = item['Action URL'] || '';
+  const hasBookingLink = actionUrl && /^https?:\/\//i.test(actionUrl);
+  const replySubject = encodeURIComponent(`Re: ${item.Subject || 'Interview Next Steps'}`);
+  const replyBody = encodeURIComponent(`Hi ${item.Company} Team,\n\nThank you for reaching out regarding the ${item['Job Title']} role!\n\nI would be delighted to proceed with the next steps. Please let me know your available times or feel free to send over any additional details.\n\nBest regards,\nHemachandiran Giri`);
+  const mailtoLink = `mailto:${cleanSenderEmail}?subject=${replySubject}&body=${replyBody}`;
+
+  const actBtns = $('modal-email-action-btns');
+  if (actBtns) {
+    actBtns.innerHTML = `
+      ${hasBookingLink ? `<a href="${esc(actionUrl)}" target="_blank" rel="noopener noreferrer" class="inbound-btn inbound-btn-primary" style="padding: 8px 16px;">📅 Book Call / Test →</a>` : ''}
+      <a href="${mailtoLink}" class="inbound-btn inbound-btn-reply" style="padding: 8px 16px;">✉️ Reply via Email</a>
+    `;
+  }
+
+  modal.hidden = false;
+};
+
+window.closeEmailModal = () => {
+  const modal = $('inbound-email-modal');
+  if (modal) modal.hidden = true;
+};
 
 window.toggleInboundDone = (idx) => {
   if (state.inbound && state.inbound[idx]) {
@@ -672,6 +771,20 @@ function initInboundTabs() {
       showToast('Refreshing Inbound Next Steps pipeline…');
     };
   }
+
+  const closeX = $('close-email-modal');
+  if (closeX) closeX.onclick = closeEmailModal;
+  const closeBtn = $('close-email-modal-btn');
+  if (closeBtn) closeBtn.onclick = closeEmailModal;
+  const emailModal = $('inbound-email-modal');
+  if (emailModal) {
+    emailModal.onclick = (e) => {
+      if (e.target === emailModal) closeEmailModal();
+    };
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeEmailModal();
+  });
 }
 
 function renderCountryBars(countries, totalRoles) {

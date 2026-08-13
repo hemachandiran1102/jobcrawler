@@ -796,6 +796,7 @@ def scan_single_account(account: dict, days_back: int, max_emails: int) -> list[
                         "Sender": from_header,
                         "Subject": subject,
                         "Email Snippet": snippet,
+                        "Full Email Body": plain_body.strip(),
                         "Replied Status": "No",
                         "Notes": "",
                     }
