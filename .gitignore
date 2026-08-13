@@ -9,6 +9,7 @@
 *.log
 .env
 email_config.json
+.outlook_tokens.json
 
 # Word Documents & Excel Files (Binary / Large generated exports)
 *.docx

@@ -691,10 +691,38 @@ def scan_single_account(account: dict, days_back: int, max_emails: int) -> list[
 
     try:
         mail = imaplib.IMAP4_SSL(imap_server, imap_port)
-        mail.login(email_user, email_pass)
-        log(f"[{acc_name}] IMAP Login Successful!", "OK")
-    except Exception as e:
-        log(f"[{acc_name}] Login Failed: {e}", "ERROR")
+        provider = str(account.get("provider", "")).lower()
+        is_microsoft = "outlook" in provider or "hotmail" in provider or "office365" in imap_server or "outlook" in imap_server
+
+        logged_in = False
+
+        # Attempt 1: App Password / Basic Auth
+        if email_pass:
+            try:
+                mail.login(email_user, email_pass)
+                logged_in = True
+                log(f"[{acc_name}] IMAP Login Successful!", "OK")
+            except Exception as pass_err:
+                log(f"[{acc_name}] App Password login failed: {pass_err}", "WARN")
+
+        # Attempt 2: Microsoft Modern Auth (XOAUTH2)
+        if not logged_in and is_microsoft:
+            try:
+                from microsoft_auth import get_microsoft_access_token
+                token = get_microsoft_access_token(email_user, interactive=False)
+                if token:
+                    auth_str = f"user={email_user}\x01auth=Bearer {token}\x01\x01".encode("utf-8")
+                    mail.authenticate("XOAUTH2", lambda _: auth_str)
+                    logged_in = True
+                    log(f"[{acc_name}] Microsoft Modern Auth (XOAUTH2) Successful!", "OK")
+            except Exception as oauth_err:
+                log(f"[{acc_name}] XOAUTH2 Failed: {oauth_err}", "WARN")
+
+        if not logged_in:
+            log(f"[{acc_name}] Could not authenticate with {email_user}.", "ERROR")
+            return []
+    except Exception as conn_err:
+        log(f"[{acc_name}] Connection error to {imap_server}: {conn_err}", "ERROR")
         return []
 
     since_date = (datetime.now() - timedelta(days=days_back)).strftime("%d-%b-%Y")
