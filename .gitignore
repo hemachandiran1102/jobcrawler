@@ -8,6 +8,7 @@
 *.session
 *.log
 .env
+email_config.json
 
 # Word Documents & Excel Files (Binary / Large generated exports)
 *.docx

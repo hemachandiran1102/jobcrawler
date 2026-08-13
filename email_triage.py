@@ -106,11 +106,11 @@ def log(msg: str, level: str = "INFO"):
 
 
 def load_email_config() -> dict:
-    """Load configuration from email_config.json or environment variables."""
+    """Load configuration from .env, email_config.json, or environment variables."""
     cfg = {
         "email": os.environ.get("EMAIL_USER", ""),
         "password": os.environ.get("EMAIL_PASSWORD", ""),
-        "provider": "gmail",
+        "provider": os.environ.get("EMAIL_PROVIDER", "gmail"),
         "imap_server": os.environ.get("IMAP_SERVER", "imap.gmail.com"),
         "imap_port": int(os.environ.get("IMAP_PORT", 993)),
         "use_ssl": True,
@@ -120,6 +120,27 @@ def load_email_config() -> dict:
         "mark_as_read": False,
     }
 
+    # 1. Try reading from .env file if present
+    env_path = WORK_DIR / ".env"
+    if env_path.exists():
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    k = k.strip().upper()
+                    v = v.strip().strip("\"'")
+                    if k == "EMAIL_USER": cfg["email"] = v
+                    elif k == "EMAIL_PASSWORD": cfg["password"] = v
+                    elif k == "EMAIL_PROVIDER": cfg["provider"] = v
+                    elif k == "IMAP_SERVER": cfg["imap_server"] = v
+                    elif k == "IMAP_PORT": cfg["imap_port"] = int(v)
+        except Exception as e:
+            log(f"Warning reading .env: {e}", "WARN")
+
+    # 2. Try reading local email_config.json (ignored by git)
     if CONFIG_PATH.exists():
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
