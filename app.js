@@ -603,10 +603,17 @@ function renderInboundPipeline() {
     const replyBody = encodeURIComponent(`Hi ${item.Company} Team,\n\nThank you for reaching out regarding the ${item['Job Title']} role!\n\nI would be delighted to proceed with the next steps. Please let me know your available times or feel free to send over any additional details.\n\nBest regards,\nHemachandiran Giri`);
     const mailtoLink = `mailto:${cleanSenderEmail}?subject=${replySubject}&body=${replyBody}`;
 
+    const accountName = item.Account || 'Email';
+    const lang = item.Language || 'English';
+
     return `
       <article class="${cardClass}">
         <div class="inbound-head">
           <div>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <span class="source-tag source-indeed" style="margin:0; font-size:10px; padding:1px 6px;">📥 ${esc(accountName)}</span>
+              ${lang !== 'English' ? `<span class="source-tag source-glassdoor" style="margin:0; font-size:10px; padding:1px 6px;">🌐 ${esc(lang)}</span>` : ''}
+            </div>
             <h3 class="inbound-company">${esc(item.Company || 'Company')}</h3>
             <p class="inbound-role">${esc(item['Job Title'] || 'Role')}</p>
           </div>

@@ -1,5 +1,115 @@
 [
   {
+    "Message ID": "multi-acc-0",
+    "Date Received": "2026-08-13 14:30",
+    "Date Sort": "2026-08-13",
+    "Company": "Stripe",
+    "Job Title": "DevOps Engineer",
+    "Category": "Interview Invitation",
+    "Priority": "🟢 High - Immediate Action",
+    "Badge": "🟢 Interview Invite",
+    "Action Required": "Book interview slot via scheduling link",
+    "Is Next Step": true,
+    "Action URL": "https://calendly.com/stripe/devops-screening",
+    "All Links": "https://calendly.com/stripe/devops-screening",
+    "Sender": "Sarah Jenkins <sarah@stripe.com>",
+    "Subject": "Invitation to Interview with Stripe for Senior DevOps Engineer",
+    "Email Snippet": "Hi Hemachandiran,  We were impressed by your background and would love to schedule a 30-minute screening call: https://calendly.com/stripe/devops-scre",
+    "Replied Status": "No",
+    "Notes": "",
+    "Account": "Gmail Primary",
+    "Inbox Email": "user@domain.com",
+    "Language": "English"
+  },
+  {
+    "Message ID": "multi-acc-1",
+    "Date Received": "2026-08-13 14:30",
+    "Date Sort": "2026-08-13",
+    "Company": "Zalando",
+    "Job Title": "Cloud Infrastructure Engineer",
+    "Category": "Interview Invitation",
+    "Priority": "🟢 High - Immediate Action",
+    "Badge": "🟢 Interview Invite",
+    "Action Required": "Book interview slot via scheduling link",
+    "Is Next Step": true,
+    "Action URL": "https://goodtime.io/zalando/interview-slot",
+    "All Links": "https://goodtime.io/zalando/interview-slot",
+    "Sender": "Zalando Recruiting <recruiting@zalando.de>",
+    "Subject": "Einladung zum Vorstellungsgespräch bei Zalando - Cloud Infrastructure Engineer",
+    "Email Snippet": "Guten Tag Hemachandiran,  vielen Dank für Ihre Bewerbung. Wir möchten Sie gerne zu einem ersten Kennenlerngespräch einladen. Bitte buchen Sie einen Te",
+    "Replied Status": "No",
+    "Notes": "",
+    "Account": "Outlook Account 1",
+    "Inbox Email": "user@domain.com",
+    "Language": "German"
+  },
+  {
+    "Message ID": "multi-acc-2",
+    "Date Received": "2026-08-13 14:30",
+    "Date Sort": "2026-08-13",
+    "Company": "Qonto",
+    "Job Title": "DevOps / Cloud Role",
+    "Category": "Interview Invitation",
+    "Priority": "🟢 High - Immediate Action",
+    "Badge": "🟢 Interview Invite",
+    "Action Required": "Book interview slot via scheduling link",
+    "Is Next Step": true,
+    "Action URL": "https://www.hackerrank.com/tests/qonto-devops-2026",
+    "All Links": "https://www.hackerrank.com/tests/qonto-devops-2026",
+    "Sender": "Qonto Talent <talent@qonto.com>",
+    "Subject": "Votre candidature chez Qonto - Test technique DevOps",
+    "Email Snippet": "Bonjour Hemachandiran,  Pour la prochaine étape de notre processus de recrutement, nous vous invitons à réaliser le test technique en ligne sur Hacker",
+    "Replied Status": "No",
+    "Notes": "",
+    "Account": "Outlook Account 1",
+    "Inbox Email": "user@domain.com",
+    "Language": "French"
+  },
+  {
+    "Message ID": "multi-acc-3",
+    "Date Received": "2026-08-13 14:30",
+    "Date Sort": "2026-08-13",
+    "Company": "Booking",
+    "Job Title": "Site Reliability Engineer",
+    "Category": "Availability / Inquiry",
+    "Priority": "🟡 Action Required",
+    "Badge": "🟡 Availability Request",
+    "Action Required": "Reply to recruiter with requested availability / details",
+    "Is Next Step": true,
+    "Action URL": "",
+    "All Links": "",
+    "Sender": "Booking.com HR <careers@booking.com>",
+    "Subject": "Sollicitatie Booking.com - Beschikbaarheid & Opzegtermijn",
+    "Email Snippet": "Beste Hemachandiran,  Wij hebben uw sollicitatie voor de Site Reliability Engineer positie ontvangen. Zou u uw beschikbaarheid en opzegtermijn willen ",
+    "Replied Status": "No",
+    "Notes": "",
+    "Account": "Outlook Account 2",
+    "Inbox Email": "user@domain.com",
+    "Language": "Dutch"
+  },
+  {
+    "Message ID": "multi-acc-4",
+    "Date Received": "2026-08-13 14:30",
+    "Date Sort": "2026-08-13",
+    "Company": "Careem",
+    "Job Title": "Platform Engineer",
+    "Category": "Interview Invitation",
+    "Priority": "🟢 High - Immediate Action",
+    "Badge": "🟢 Interview Invite",
+    "Action Required": "Book interview slot via scheduling link",
+    "Is Next Step": true,
+    "Action URL": "https://calendly.com/careem/cloud-interview",
+    "All Links": "https://calendly.com/careem/cloud-interview",
+    "Sender": "Careem Careers <careers@careem.com>",
+    "Subject": "دعوة للمقابلة الشخصية - Cloud Platform Engineer في كريم",
+    "Email Snippet": "مرحباً هيماتشانديران،  يسعدنا دعوتك للمقابلة المبدئية للحديث عن خبرتك في مجال الحوسبة السحابية. يرجى اختيار الموعد المناسب: https://calendly.com/caree",
+    "Replied Status": "No",
+    "Notes": "",
+    "Account": "Outlook Account 2",
+    "Inbox Email": "user@domain.com",
+    "Language": "Arabic"
+  },
+  {
     "Message ID": "test-msg-0",
     "Date Received": "2026-08-13 14:00",
     "Date Sort": "2026-08-13",
@@ -16,7 +126,10 @@
     "Subject": "Invitation to Interview with Stripe for Senior DevOps Engineer",
     "Email Snippet": "Hi Hemachandiran,  Thanks for applying! We were impressed by your background and would love to invite you to a 30-minute initial screening call with o",
     "Replied Status": "No",
-    "Notes": NaN
+    "Notes": NaN,
+    "Account": NaN,
+    "Inbox Email": NaN,
+    "Language": NaN
   },
   {
     "Message ID": "test-msg-1",
@@ -35,7 +148,10 @@
     "Subject": "Revolut | Technical Assessment for Cloud Platform Engineer",
     "Email Snippet": "Dear Candidate,  As the next step in our selection process, please complete the online technical assessment on HackerRank within 5 days: https://www.h",
     "Replied Status": "No",
-    "Notes": NaN
+    "Notes": NaN,
+    "Account": NaN,
+    "Inbox Email": NaN,
+    "Language": NaN
   },
   {
     "Message ID": "test-msg-2",
@@ -54,7 +170,10 @@
     "Subject": "Your application at Datadog - Availability & Notice Period",
     "Email Snippet": "Hello Hemachandiran,  We received your application for the Site Reliability Engineer position. Could you please let us know your current notice period",
     "Replied Status": "No",
-    "Notes": NaN
+    "Notes": NaN,
+    "Account": NaN,
+    "Inbox Email": NaN,
+    "Language": NaN
   },
   {
     "Message ID": "test-msg-3",
@@ -73,7 +192,10 @@
     "Subject": "Thank you for applying to Amazon - Cloud Architect",
     "Email Snippet": "Thank you for applying for the Cloud Architect role at Amazon. We have received your application and will review it shortly.",
     "Replied Status": "No",
-    "Notes": NaN
+    "Notes": NaN,
+    "Account": NaN,
+    "Inbox Email": NaN,
+    "Language": NaN
   },
   {
     "Message ID": "test-msg-4",
@@ -92,7 +214,10 @@
     "Subject": "Update regarding your application at Monzo",
     "Email Snippet": "Thank you for your interest in Monzo. Unfortunately, after careful review, we will not be progressing with your application at this time.",
     "Replied Status": "No",
-    "Notes": NaN
+    "Notes": NaN,
+    "Account": NaN,
+    "Inbox Email": NaN,
+    "Language": NaN
   },
   {
     "Message ID": "msg-001",
@@ -111,7 +236,10 @@
     "Subject": "Invitation to Interview with Stripe for Senior DevOps Engineer",
     "Email Snippet": "Thanks for applying! We were impressed by your AWS and Kubernetes experience and would love to schedule an initial 30-minute screening call.",
     "Replied Status": "No",
-    "Notes": ""
+    "Notes": NaN,
+    "Account": NaN,
+    "Inbox Email": NaN,
+    "Language": NaN
   },
   {
     "Message ID": "msg-002",
@@ -130,7 +258,10 @@
     "Subject": "Revolut | Next Step: Online Technical Assessment",
     "Email Snippet": "Please complete the following technical assessment on HackerRank within 5 business days to proceed to the architectural review round.",
     "Replied Status": "No",
-    "Notes": ""
+    "Notes": NaN,
+    "Account": NaN,
+    "Inbox Email": NaN,
+    "Language": NaN
   },
   {
     "Message ID": "msg-003",
@@ -143,12 +274,15 @@
     "Badge": "🟡 Availability Request",
     "Action Required": "Reply with notice period, visa status, and available screening times",
     "Is Next Step": true,
-    "Action URL": "",
-    "All Links": "",
+    "Action URL": NaN,
+    "All Links": NaN,
     "Sender": "Alex Chen <alex.chen@datadoghq.com>",
     "Subject": "Your application at Datadog - Screening Availability",
     "Email Snippet": "We would like to connect for a quick introductory chat. Please share your current notice period and 3 time slots you are free this week.",
     "Replied Status": "No",
-    "Notes": ""
+    "Notes": NaN,
+    "Account": NaN,
+    "Inbox Email": NaN,
+    "Language": NaN
   }
 ]
