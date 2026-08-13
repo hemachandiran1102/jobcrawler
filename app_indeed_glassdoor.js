@@ -39,6 +39,15 @@ const keyFor = (job) => {
 
 const shortlist = () => new Set(JSON.parse(localStorage.getItem('job-compass-ig-shortlist') || '[]'));
 const saveShortlist = (keys) => localStorage.setItem('job-compass-ig-shortlist', JSON.stringify([...keys]));
+const appliedSet = () => new Set(JSON.parse(localStorage.getItem('job-compass-applied') || '[]'));
+const saveAppliedSet = (keys) => localStorage.setItem('job-compass-applied', JSON.stringify([...keys]));
+
+function isJobApplied(job) {
+  if (!job) return false;
+  if (appliedSet().has(keyFor(job))) return true;
+  const val = String(job['Applied Status'] || job.AppliedStatus || job.Applied || '').trim().toLowerCase();
+  return ['yes', 'applied', 'true', '1', 'done', 'submitted'].includes(val);
+}
 
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -235,10 +244,16 @@ function updateStoredCount() {
   if ($('stored-count')) $('stored-count').textContent = `${c.toLocaleString()} opportunities stored`;
   if ($('nav-all')) $('nav-all').textContent = c.toLocaleString();
   if ($('nav-ig-total')) $('nav-ig-total').textContent = c.toLocaleString();
-  const appliedCount = state.jobs.filter((j) => String(j['Applied Status'] || '').toLowerCase() === 'yes').length;
+  const appliedCount = state.jobs.filter(isJobApplied).length;
   if ($('nav-applied')) $('nav-applied').textContent = appliedCount.toLocaleString();
   const savedCount = shortlist().size;
   if ($('nav-shortlist')) $('nav-shortlist').textContent = savedCount.toLocaleString();
+
+  // Load Inbound count badge if available
+  fetch('interview_pipeline.json').then((r) => r.json()).then((data) => {
+    const nextSteps = data.filter((d) => d['Is Next Step'] === true || d['Is Next Step'] === 'True' || d['Is Next Step'] === 'true');
+    if ($('nav-inbound-total')) $('nav-inbound-total').textContent = nextSteps.length;
+  }).catch(() => {});
 }
 
 function populateFilters() {
@@ -305,13 +320,15 @@ function applyFilters() {
     const displayCrawlDate = formatDisplayDate(crawlDt || postedDt);
     const matchSelectedDate = !state.selectedDate || state.selectedDate === 'all' || displayCrawlDate === state.selectedDate;
 
+    const isApplied = isJobApplied(job);
+
     return (!q || roleText(job).includes(q)) &&
            (!f.country || job.Country === f.country) &&
            (!f.source || source.includes(f.source.toLowerCase())) &&
            (!f.workplace || job['Remote / Workplace'] === f.workplace) &&
            (!f.score || scoreOf(job) >= Number(f.score)) &&
            isCrawlRecent && isPostedRecent && matchSelectedDate &&
-           (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && applied === 'yes') || (f.status === 'not-applied' && applied !== 'yes') || (f.status === 'indeed' && source.includes('indeed')) || (f.status === 'glassdoor' && source.includes('glassdoor')));
+           (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && isApplied) || (f.status === 'not-applied' && !isApplied) || (f.status === 'indeed' && source.includes('indeed')) || (f.status === 'glassdoor' && source.includes('glassdoor')));
   });
 
   const { key, asc } = state.sort;
@@ -479,11 +496,21 @@ function renderTable() {
     const key = b.dataset.applied;
     const targetJob = state.jobs.find((j) => keyFor(j) === key);
     if (!targetJob) return;
-    const currentlyApplied = String(targetJob['Applied Status'] || '').toLowerCase() === 'yes';
-    targetJob['Applied Status'] = currentlyApplied ? 'No' : 'Yes';
+    const currentlyApplied = isJobApplied(targetJob);
+    const newStatus = currentlyApplied ? 'No' : 'Yes';
+    targetJob['Applied Status'] = newStatus;
+
+    const appKeys = appliedSet();
+    if (newStatus === 'Yes') {
+      appKeys.add(key);
+    } else {
+      appKeys.delete(key);
+    }
+    saveAppliedSet(appKeys);
+
     try { await storeJobs([targetJob]); } catch {}
     renderAll();
-    showToast(targetJob['Applied Status'] === 'Yes' ? `Marked "${targetJob['Job Title']}" as Applied.` : `Marked "${targetJob['Job Title']}" as Not Applied.`);
+    showToast(newStatus === 'Yes' ? `Marked "${targetJob['Job Title']}" as Applied.` : `Marked "${targetJob['Job Title']}" as Not Applied.`);
   });
 
   $('page-info').textContent = total ? `Showing ${(state.page-1)*PAGE_SIZE+1}–${Math.min(state.page*PAGE_SIZE,total)} of ${total.toLocaleString()} roles` : 'No roles to show';

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Compass — Inbound Next Steps & Interview Pipeline</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Authentication Overlay -->
+    <div class="auth-overlay" id="auth-overlay" hidden>
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-brand"><span class="brand-mark">J</span><span>job<span>compass</span></span></div>
+          <h2 id="auth-title">🔐 Protected Access</h2>
+          <p id="auth-subtitle">Enter your master password to unlock your Inbound Interview Pipeline.</p>
+        </div>
+        <div id="auth-error" class="auth-error" hidden></div>
+        <form id="auth-form">
+          <div class="auth-field">
+            <label for="auth-password">Master Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="auth-password" placeholder="Enter master password…" required autocomplete="current-password" />
+              <button type="button" class="password-toggle-btn" id="toggle-auth-password" title="Toggle password visibility">👁️</button>
+            </div>
+          </div>
+          <button type="submit" class="auth-submit-btn" id="auth-submit-btn">Unlock Pipeline →</button>
+        </form>
+        <div class="auth-footer">Protected by AES-256 / SHA-256 Client Security</div>
+      </div>
+    </div>
+
+    <!-- Application Shell -->
+    <div class="shell" id="app-shell">
+      <aside class="sidebar">
+        <a href="index.html" class="brand"><span class="brand-mark">J</span><span>job<span>compass</span></span></a>
+        <nav class="nav">
+          <a href="index.html" title="LinkedIn Opportunities"><span>💼</span>LinkedIn Board</a>
+          <a href="indeed_glassdoor.html" title="Indeed & Glassdoor Board"><span>🌐</span>Indeed & Glassdoor</a>
+          <a href="inbound_pipeline.html" class="active" title="Inbound Next Steps & Interviews"><span>📬</span>Inbound Next Steps <b id="nav-inbound-badge" style="background:#10b981; color:#0f172a; font-weight:800;">17</b></a>
+        </nav>
+        <div class="sidebar-bottom">
+          <p id="stored-count" class="stored-count">3 Inboxes Connected</p>
+          <div style="font-size:11px; color:#94a3b8; line-height:1.5; margin-top:8px;">
+            <div>• Hotmail Primary (Connected)</div>
+            <div>• Gmail Primary (Connected)</div>
+            <div>• Hotmail Secondary</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="topbar-right" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+            <div class="topbar-pill">
+              <span class="pulse-dot" style="background:#10b981;"></span>
+              <span>LIVE INBOUND TRIAGE</span>
+              <span class="pill-divider">·</span>
+              <span id="header-total-count">17 Actionable Next Steps</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a href="interview_pipeline.xlsx" download class="filter-button" style="text-decoration:none; padding: 7px 14px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">📊 Master Excel</a>
+              <a href="interview_pipeline.csv" download class="filter-button" style="text-decoration:none; padding: 7px 14px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">📄 Master CSV</a>
+              <button class="lock-header-btn" id="lock-header-btn" title="Lock session">🔒</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="hero">
+          <div class="hero-copy-wrap">
+            <p class="eyebrow" style="color:#10b981;">RECRUITER RESPONSES & INTERVIEWS</p>
+            <h1>Inbound Next Steps<br /><em>& Interview Pipeline.</em></h1>
+            <p class="hero-copy" id="dataset-summary">Scanned across all connected inboxes (Gmail & Hotmail) in multiple languages.</p>
+          </div>
+          <div class="hero-actions">
+            <button class="import-button" id="refresh-pipeline-btn" style="background:#10b981; color:#0f172a; font-weight:700;"><span>🔄</span> Refresh Pipeline</button>
+          </div>
+        </section>
+
+        <!-- Metric Summary Cards -->
+        <section class="metrics">
+          <article class="metric-card clickable" id="metric-action-card" style="border-top: 3px solid #10b981;">
+            <div class="metric-head"><span class="metric-badge" style="background:rgba(16,185,129,0.2); color:#34d399;">⚡ ACTION REQUIRED</span></div>
+            <strong id="metric-action-count" style="color:#34d399;">0</strong>
+            <span class="metric-note">Next steps ready to proceed</span>
+          </article>
+          <article class="metric-card clickable" id="metric-invites-card" style="border-top: 3px solid #34d399;">
+            <div class="metric-head"><span class="metric-badge badge-match">🟢 INTERVIEWS</span></div>
+            <strong id="metric-invites-count">0</strong>
+            <span class="metric-note">Screenings & technical rounds</span>
+          </article>
+          <article class="metric-card clickable" id="metric-assessments-card" style="border-top: 3px solid #60a5fa;">
+            <div class="metric-head"><span class="metric-badge badge-applied">🔵 ASSESSMENTS</span></div>
+            <strong id="metric-assessments-count">0</strong>
+            <span class="metric-note">Online coding challenges & tests</span>
+          </article>
+          <article class="metric-card clickable" id="metric-inquiries-card" style="border-top: 3px solid #fbbf24;">
+            <div class="metric-head"><span class="metric-badge badge-shortlist">🟡 AVAILABILITY</span></div>
+            <strong id="metric-inquiries-count">0</strong>
+            <span class="metric-note">Notice period & salary inquiries</span>
+          </article>
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-badge">ALL INBOUND</span></div>
+            <strong id="metric-total-emails">0</strong>
+            <span class="metric-note">Total emails scanned</span>
+          </article>
+        </section>
+
+        <!-- Account Filter Strip -->
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:1rem; padding: 12px 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Filter By Inbox:</span>
+            <div class="status-tabs-bar" id="account-filter-bar" style="margin:0;">
+              <button class="status-pill active" data-account="all">All Inboxes (<b id="acc-count-all">0</b>)</button>
+              <button class="status-pill" data-account="Hotmail Primary">📥 Hotmail Primary (<b id="acc-count-hotmail1">0</b>)</button>
+              <button class="status-pill" data-account="Gmail Primary">📥 Gmail Primary (<b id="acc-count-gmail">0</b>)</button>
+              <button class="status-pill" data-account="Hotmail Secondary">📥 Hotmail Secondary (<b id="acc-count-hotmail2">0</b>)</button>
+            </div>
+          </div>
+          <div class="search-wrap" style="width: 260px;">
+            <span>⌕</span>
+            <input type="search" id="search-inbound" placeholder="Search company, role, recruiter…" />
+          </div>
+        </div>
+
+        <!-- Master Queue & Tabs -->
+        <section class="inbound-section" style="margin-bottom: 3rem;">
+          <div class="queue-master-bar" style="border-left: 3px solid #10b981;">
+            <div class="queue-left">
+              <h2>Inbound Response Queue <span class="queue-count-badge" id="visible-inbound-count" style="background:#10b981; color:#ffffff;">0</span></h2>
+            </div>
+            <div class="queue-center">
+              <div class="status-tabs-bar" id="inbound-category-tabs">
+                <button class="status-pill active" data-tab="next-steps">⚡ Action Required (<b id="tab-action-count">0</b>)</button>
+                <button class="status-pill" data-tab="invites">🟢 Interview Invites (<b id="tab-invites-count">0</b>)</button>
+                <button class="status-pill" data-tab="assessments">🔵 Assessments (<b id="tab-assessments-count">0</b>)</button>
+                <button class="status-pill" data-tab="inquiries">🟡 Availability (<b id="tab-inquiries-count">0</b>)</button>
+                <button class="status-pill" data-tab="all">All Responses (<b id="tab-all-count">0</b>)</button>
+                <button class="status-pill" data-tab="rejections">🔴 Rejections (<b id="tab-rejections-count">0</b>)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cards Grid -->
+          <div id="inbound-cards-container" class="inbound-cards-grid" style="margin-top: 1.25rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1rem;">
+            <div class="inbound-empty-card" style="grid-column: 1 / -1; padding: 3rem; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px; text-align: center; color: #94a3b8;">
+              <p style="margin: 0; font-size: 15px;">Loading your inbound interview pipeline…</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Full Email Reader Modal -->
+    <div class="modal-overlay" id="inbound-email-modal" hidden>
+      <div class="modal-card" style="max-width: 780px; width: 92%; max-height: 88vh; display: flex; flex-direction: column;">
+        <header class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="modal-email-icon" style="font-size: 20px;">📬</span>
+            <h3 id="modal-email-title" style="margin: 0; font-size: 16px; font-weight: 600;">Email Details</h3>
+          </div>
+          <button id="close-email-modal" aria-label="Close modal">×</button>
+        </header>
+        <div class="modal-body" style="overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div class="email-modal-meta-grid" id="modal-email-meta"></div>
+          <div class="inbound-action-box" id="modal-email-action-box" style="margin: 0;"></div>
+          <div class="email-modal-body-container">
+            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin: 0 0 8px 0; letter-spacing: 0.5px;">Full Message:</h4>
+            <div id="modal-email-full-text" class="email-modal-body-text"></div>
+          </div>
+          <div id="modal-email-links-section" style="display: none;">
+            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin: 0 0 8px 0; letter-spacing: 0.5px;">Extracted Action Links:</h4>
+            <div id="modal-email-links-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          </div>
+        </div>
+        <div class="modal-actions" id="modal-email-actions" style="padding: 14px 20px; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center;">
+          <button id="close-email-modal-btn" class="filter-button" style="padding: 8px 16px;">Close</button>
+          <div id="modal-email-action-btns" style="display: flex; gap: 10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="app_inbound_pipeline.js"></script>
+  </body>
+</html>

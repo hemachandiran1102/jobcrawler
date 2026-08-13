@@ -18,6 +18,15 @@ const keyFor = (job) => {
 };
 const shortlist = () => new Set(JSON.parse(localStorage.getItem('job-compass-shortlist') || '[]'));
 const saveShortlist = (keys) => localStorage.setItem('job-compass-shortlist', JSON.stringify([...keys]));
+const appliedSet = () => new Set(JSON.parse(localStorage.getItem('job-compass-applied') || '[]'));
+const saveAppliedSet = (keys) => localStorage.setItem('job-compass-applied', JSON.stringify([...keys]));
+
+function isJobApplied(job) {
+  if (!job) return false;
+  if (appliedSet().has(keyFor(job))) return true;
+  const val = String(job['Applied Status'] || job.AppliedStatus || job.Applied || '').trim().toLowerCase();
+  return ['yes', 'applied', 'true', '1', 'done', 'submitted'].includes(val);
+}
 
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -342,13 +351,15 @@ function applyFilters() {
     const displayCrawlDate = formatDisplayDate(crawlDt || postedDt);
     const matchSelectedDate = !state.selectedDate || state.selectedDate === 'all' || displayCrawlDate === state.selectedDate;
 
+    const isApplied = isJobApplied(job);
+
     return (!q || roleText(job).includes(q)) &&
            (!f.country || job.Country === f.country) &&
            (!f.source || src.toLowerCase().includes(f.source.toLowerCase())) &&
            (!f.workplace || job['Remote / Workplace'] === f.workplace) &&
            (!f.score || scoreOf(job) >= Number(f.score)) &&
            isCrawlRecent && isPostedRecent && matchSelectedDate &&
-           (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && applied === 'yes') || (f.status === 'not-applied' && applied !== 'yes'));
+           (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && isApplied) || (f.status === 'not-applied' && !isApplied));
   });
 
   const { key, asc } = state.sort;
@@ -408,7 +419,7 @@ let countryChartQuery = '';
 
 function renderMetrics() {
   const all = state.jobs, saved = shortlist(), high = all.filter((j) => scoreOf(j) >= 85), countries = countBy(all, 'Country');
-  const appliedJobs = all.filter((j) => (j['Applied Status'] || '').toLowerCase() === 'yes');
+  const appliedJobs = all.filter(isJobApplied);
   const totalRoles = all.length || 1;
   const appliedPct = ((appliedJobs.length / totalRoles) * 100).toFixed(1);
 
@@ -1097,9 +1108,17 @@ function renderTable() {
     const targetJob = state.jobs.find((j) => keyFor(j) === key);
     if (!targetJob) return;
     
-    const currentlyApplied = String(targetJob['Applied Status'] || '').toLowerCase() === 'yes';
+    const currentlyApplied = isJobApplied(targetJob);
     const newStatus = currentlyApplied ? 'No' : 'Yes';
     targetJob['Applied Status'] = newStatus;
+
+    const appKeys = appliedSet();
+    if (newStatus === 'Yes') {
+      appKeys.add(key);
+    } else {
+      appKeys.delete(key);
+    }
+    saveAppliedSet(appKeys);
     
     try {
       await storeJobs([targetJob]);
