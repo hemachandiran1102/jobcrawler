@@ -22,6 +22,7 @@ import os
 import re
 import sys
 import json
+import html as html_module
 import time
 import email
 import email.message
@@ -95,6 +96,81 @@ KNOWN_TECH_ROLES = [
 ]
 
 # ══════════════════════════════════════════════════════════════════════
+# NOISE / SPAM FILTERING
+# ══════════════════════════════════════════════════════════════════════
+# Sender domains that are never job-related — pre-filtered before classification
+NOISE_SENDER_DOMAINS = {
+    # Banking & Finance
+    "hdfcbank.bank.in", "mailers.hdfcbank.bank.in", "icicibank.com", "axisbank.com",
+    "sbi.co.in", "kotak.com", "yesbank.in", "indusind.com", "cdslindia.co.in",
+    "groww.in", "zerodha.com", "upstox.com", "kite.zerodha.com", "angelone.in",
+    # Shopping & E-commerce
+    "amazon.in", "amazon.com", "flipkart.com", "rmp.flipkart.com", "myntra.com",
+    "ajio.com", "comm.adidas.in", "adidas.in", "bluestone.com", "nykaa.com",
+    "tatacliq.com", "reliancedigital.in", "croma.com", "meesho.com",
+    # Food & Delivery
+    "swiggy.in", "zomato.com", "updates.rapido.bike", "rapido.bike",
+    "dunzo.com", "blinkit.com", "bigbasket.com",
+    # Streaming & Social & Gaming
+    "twitch.tv", "discord.com", "update.strava.com", "strava.com",
+    "spotify.com", "netflix.com", "hotstar.com", "primevideo.com",
+    "youtube.com", "facebook.com", "instagram.com",
+    # Travel
+    "makemytrip.com", "zen-makemytrip.com", "goindigo.in", "exclusive.goindigo.in",
+    "cleartrip.com", "yatra.com", "irctc.co.in", "airindia.in",
+    # Real Estate & Utilities
+    "homeservices.nobroker.in", "nobroker.in", "magicbricks.com", "99acres.com",
+    # Hardware & Gaming
+    "newsletter.originpc.com", "originpc.com", "steam.com", "epicgames.com",
+    # Telecom
+    "jio.com", "airtel.in", "vodafone.in",
+    # Security / System notifications (not job-related)
+    "accounts.google.com", "accountprotection.microsoft.com",
+    "no-reply@microsoft.com",
+    # Consumer Electronics
+    "in.email.samsung.com", "samsung.com",
+    # Delivery status / Mailer daemon
+    "googlemail.com",
+}
+
+# Subject-line keywords that indicate non-job emails
+NOISE_SUBJECT_KEYWORDS = [
+    # Shopping & Sales
+    "cashback", "flat % off", "flat 40%", "flat 50%", "price drop", "voucher",
+    "coupon", "discount code", "limited time offer", "flash sale", "end of season",
+    "shop now", "buy now", "free delivery", "free shipping",
+    # Banking & Finance
+    "payment was made", "credit card xx", "emi", "loan processing",
+    "smartemi", "outstanding balance", "e-voting", "nominee",
+    "add nominee", "statement ready", "transaction alert",
+    # Streaming & Gaming
+    "is live:", "gave you kudos", "mentioned you in", "new follower",
+    "started streaming", "went live",
+    # E-commerce Orders
+    "ordered:", "shipped:", "delivered:", "your order", "order confirmed",
+    "out for delivery", "refund processed",
+    # Travel
+    "flight booking", "booking confirmed", "itinerary",
+    # Generic Spam
+    "unsubscribe", "huge savings", "exclusive offer", "act now",
+    # Security / System alerts
+    "security alert", "new sign-in detected", "two-step verification",
+    "security code", "security info was added", "new app(s) connected",
+    "run failed:", "delivery status notification",
+    # Consumer marketing
+    "samsung ai", "switch to samsung",
+]
+
+# Recruiter ATS / hiring platform domains — bonus scoring weight
+RECRUITER_PLATFORM_DOMAINS = {
+    "greenhouse.io", "lever.co", "smartrecruiters.com", "ashbyhq.com",
+    "workday.com", "icims.com", "bamboohr.com", "jazz.co", "breezy.hr",
+    "recruitee.com", "workable.com", "teamtailor.com", "personio.de",
+    "hire.lever.co", "boards.greenhouse.io", "myworkdayjobs.com",
+    "jobs.lever.co", "apply.workable.com",
+}
+
+# ══════════════════════════════════════════════════════════════════════
 # MULTI-LINGUAL INTENT DICTIONARIES
 # ══════════════════════════════════════════════════════════════════════
 MULTILINGUAL_SIGNALS = {
@@ -108,40 +184,62 @@ MULTILINGUAL_SIGNALS = {
             "next round of interviews", "first round interview", "screening interview",
             "introductory call", "hiring manager interview", "technical interview round",
             "calendly.com", "goodtime.io", "savvycal.com", "schedule your interview",
+            # New expanded English signals
+            "would love to set up a call", "let's set up a conversation",
+            "would like to invite you", "interview schedule", "we are pleased to inform",
+            "shortlisted for interview", "selected for the next round",
+            "your profile has been shortlisted", "confirm your interview",
+            "proceed to the next step", "proceed to next round",
+            "we'd like to schedule", "we would like to schedule",
+            "let's arrange a call", "arrange a meeting", "arrange an interview",
+            "discussion with the team", "meet the team", "panel interview",
+            "final round interview", "on-site interview", "video interview",
+            "phone screening", "phone screen", "initial call", "discovery call",
+            "chat about the role", "chat about this opportunity",
+            "connect with our hiring", "speak with our recruiter",
+            "interview slot", "interview time", "interview date",
+            "we want to move forward", "move to the next stage",
+            "advance your application", "advance to the next step",
+            "pleased to inform you that you have been shortlisted",
+            "happy to let you know", "glad to inform you",
         ],
         "de": [
             "einladung zum interview", "einladung zum vorstellungsgespräch", "einladung zum kennenlerngespräch",
             "termin für ein interview", "telefoninterview", "erstgespräch", "kennenlernen möchten",
             "nächste runde", "terminvereinbarung", "interviewtermin", "vorstellungsgespräch vereinbaren",
-            "wir möchten sie zu einem interview einladen", "einen termin abstimmen"
+            "wir möchten sie zu einem interview einladen", "einen termin abstimmen",
+            "wir laden sie herzlich ein", "gesprächstermin", "bewerbungsgespräch",
         ],
         "fr": [
             "invitation à un entretien", "invitation pour un entretien", "entretien de pré-qualification",
             "entretien téléphonique", "prochaine étape de notre processus", "convenir d'un rendez-vous",
             "échangeons par téléphone", "entretien avec le responsable", "planifier un appel",
-            "nous souhaitons échanger avec vous", "fixer un entretien"
+            "nous souhaitons échanger avec vous", "fixer un entretien",
+            "nous avons le plaisir de vous convier", "convocation à un entretien",
+            "entretien de recrutement", "planifier un entretien", "rendez-vous d'entretien",
+            "interview schedule", "entretien rh",
         ],
         "nl": [
             "uitnodiging voor een gesprek", "uitnodiging voor een sollicitatiegesprek", "kennismakingsgesprek",
             "telefonisch interview", "volgende ronde", "afspraak inplannen", "gesprek plannen",
-            "graag met je in gesprek", "uitnodigen voor een interview"
+            "graag met je in gesprek", "uitnodigen voor een interview",
         ],
         "nordic": [
             "inbjudan till intervju", "boka en tid för intervju", "intervju med oss",
             "inbjudan till samtal", "nästa steg i rekryteringen", "kutsu haastatteluun",
-            "haastattelukutsu", "kutsumme sinut haastatteluun", "til samtale", "innkalling til intervju"
+            "haastattelukutsu", "kutsumme sinut haastatteluun", "til samtale", "innkalling til intervju",
         ],
         "ar": [
             "دعوة للمقابلة", "مقابلة شخصية", "الخطوة التالية في التوظيف",
             "تحديد موعد للمقابلة", "مقابلة مبدئية", "يسعدنا دعوتك للمقابلة",
-            "لقاء تقني", "موعد مقابلة", "جدولة مكالمة"
+            "لقاء تقني", "موعد مقابلة", "جدولة مكالمة",
         ],
         "es_pt_it_pl": [
             "invitación a una entrevista", "invitamos a una entrevista", "agendar una entrevista",
             "siguiente paso en el proceso", "llamada de selección", "reunión de presentación",
             "convite para entrevista", "convidamos para uma entrevista", "agendar uma conversa",
             "próxima etapa do processo", "invito a un colloquio", "fissare un colloquio",
-            "zaproszenie na rozmowę", "zaproszenie do kolejnego etapu", "rozmowa rekrutacyjna"
+            "zaproszenie na rozmowę", "zaproszenie do kolejnego etapu", "rozmowa rekrutacyjna",
         ]
     },
     "assessment": {
@@ -150,28 +248,39 @@ MULTILINGUAL_SIGNALS = {
             "hackerrank", "codility", "testgorilla", "byteboard",
             "take-home test", "take home assessment", "practical test",
             "online assessment", "complete the assessment before", "assessment deadline",
-            "hirevue", "coderbyte", "codewars"
+            "hirevue", "coderbyte", "codewars",
+            # New expanded signals
+            "aptitude test", "skill assessment", "pre-screening test",
+            "complete the following", "complete this assessment",
+            "codesignal", "leetcode", "amcat", "cocubes", "mettl",
+            "technical test link", "assessment link", "test invitation",
+            "online test", "programming test", "code test", "assessment invitation",
+            "complete your assessment", "start your assessment",
+            "technical evaluation", "skills evaluation", "coding exercise",
+            "code challenge", "home assignment", "take-home assignment",
+            "technical task", "screening assessment",
         ],
         "de": [
             "technischer test", "programmiertest", "coding aufgabe", "coding challenge",
-            "online test", "praxisaufgabe", "fallstudie", "online-assessment"
+            "online test", "praxisaufgabe", "fallstudie", "online-assessment",
         ],
         "fr": [
             "test technique", "évaluation technique", "test de codage", "test en ligne",
-            "cas pratique", "mise en situation", "évaluation de compétences"
+            "cas pratique", "mise en situation", "évaluation de compétences",
+            "évaluation des compétences", "test de compétences",
         ],
         "nl": [
-            "technische test", "codeertest", "programmeertest", "online assessment", "praktijkopdracht"
+            "technische test", "codeertest", "programmeertest", "online assessment", "praktijkopdracht",
         ],
         "nordic": [
-            "tekniskt test", "programmeringstest", "teknisk uppgift", "tekninen tehtävä", "koodaustesti"
+            "tekniskt test", "programmeringstest", "teknisk uppgift", "tekninen tehtävä", "koodaustesti",
         ],
         "ar": [
-            "اختبار تقني", "اختبار برمجي", "تقييم فني", "تحدي برمجي", "اختبار مهارات"
+            "اختبار تقني", "اختبار برمجي", "تقييم فني", "تحدي برمجي", "اختبار مهارات",
         ],
         "es_pt_it_pl": [
             "prueba técnica", "test técnico", "teste técnico", "desafio técnico",
-            "test tecnico", "prova tecnica", "zadanie rekrutacyjne", "test techniczny"
+            "test tecnico", "prova tecnica", "zadanie rekrutacyjne", "test techniczny",
         ]
     },
     "inquiry": {
@@ -180,29 +289,42 @@ MULTILINGUAL_SIGNALS = {
             "provide your availability", "what is your notice period",
             "expected salary", "salary expectations", "right to work",
             "visa sponsorship required", "share your updated cv",
-            "could you confirm your current location", "share a few time slots"
+            "could you confirm your current location", "share a few time slots",
+            # New expanded signals
+            "send us your updated resume", "current ctc", "expected ctc",
+            "notice period", "when can you join", "share your resume",
+            "please confirm your details", "please confirm details",
+            "earliest joining date", "joining date", "current salary",
+            "desired salary", "salary range", "compensation expectations",
+            "relocation", "willing to relocate", "open to relocation",
+            "work authorization", "work permit", "sponsorship",
+            "updated cv", "latest resume", "updated resume",
+            "confirm your contact", "confirm your phone", "contact number",
+            "please share your", "kindly share your", "kindly provide",
+            "could you share", "respond with your", "reply with your availability",
         ],
         "de": [
             "verfügbarkeit", "terminvorschläge", "kündigungsfrist", "gehaltsvorstellung",
-            "gehaltswunsch", "arbeitserlaubnis", "ab wann könnten sie beginnen"
+            "gehaltswunsch", "arbeitserlaubnis", "ab wann könnten sie beginnen",
         ],
         "fr": [
             "vos disponibilités", "créneaux disponibles", "période de préavis",
-            "délai de préavis", "prétentions salariales", "autorisation de travail"
+            "délai de préavis", "prétentions salariales", "autorisation de travail",
+            "date de disponibilité", "disponible à partir de",
         ],
         "nl": [
-            "beschikbaarheid", "beschikbare momenten", "opzegtermijn", "salarisindicatie", "werkvergunning"
+            "beschikbaarheid", "beschikbare momenten", "opzegtermijn", "salarisindicatie", "werkvergunning",
         ],
         "nordic": [
-            "tillgänglighet", "uppsägningstid", "löneanspråk", "työlupa", "irtisanomisaika"
+            "tillgänglighet", "uppsägningstid", "löneanspråk", "työlupa", "irtisanomisaika",
         ],
         "ar": [
-            "توفرك", "أوقات فراغك", "فترة الإشعار", "الراتب المتوقع", "تصريح العمل", "تأشيرة العمل"
+            "توفرك", "أوقات فراغك", "فترة الإشعار", "الراتب المتوقع", "تصريح العمل", "تأشيرة العمل",
         ],
         "es_pt_it_pl": [
             "disponibilidad", "período de preaviso", "expectativas salariales",
             "disponibilidade", "aviso prévio", "pretensão salarial",
-            "disponibilità", "preavviso", "dostępność", "okres wypowiedzenia"
+            "disponibilità", "preavviso", "dostępność", "okres wypowiedzenia",
         ]
     },
     "rejection": {
@@ -211,58 +333,130 @@ MULTILINGUAL_SIGNALS = {
             "pursue other candidates", "decided not to proceed",
             "not selected for this role", "carefully reviewed your application",
             "at this time we have decided", "wish you all the best",
-            "will not be progressing", "regret to inform"
+            "will not be progressing", "regret to inform",
+            # New expanded signals
+            "unable to move forward", "will not be moving forward",
+            "not be proceeding", "decided to go with another", "chose another candidate",
+            "no longer being considered", "position has been filled",
+            "role has been filled", "won't be advancing",
+            "not a fit at this time", "decided to proceed with other",
         ],
         "de": [
             "leider müssen wir ihnen mitteilen", "haben uns für einen anderen kandidaten entschieden",
-            "nicht weiterverfolgen", "bedauern wir ihnen mitteilen", "absage"
+            "nicht weiterverfolgen", "bedauern wir ihnen mitteilen", "absage",
         ],
         "fr": [
             "nous avons le regret de vous informer", "nous ne retenons pas votre candidature",
-            "malheureusement", "poursuivre avec d'autres candidats", "pas retenu votre profil"
+            "malheureusement", "poursuivre avec d'autres candidats", "pas retenu votre profil",
+            "nous ne sommes pas en mesure de donner suite", "candidature n'a pas été retenue",
         ],
         "nl": [
             "helaas moeten wij u mededelen", "gekozen voor een andere kandidaat",
-            "niet verder gaan met je sollicitatie", "afwijzing"
+            "niet verder gaan met je sollicitatie", "afwijzing",
         ],
         "nordic": [
             "tyvärr har vi valt att gå vidare med andra", "vi kan tyvärr inte erbjuda dig",
-            "emme valitettavasti etene", "valitettavasti emme voi"
+            "emme valitettavasti etene", "valitettavasti emme voi",
         ],
         "ar": [
             "للأسف نعتذر عن عدم المضي قدماً", "قررنا المضي مع مرشحين آخرين",
-            "نعتذر عن عدم قبول الطلب", "نتمنى لك التوفيق في فرص أخرى"
+            "نعتذر عن عدم قبول الطلب", "نتمنى لك التوفيق في فرص أخرى",
         ],
         "es_pt_it_pl": [
             "lamentamos informarle", "no avanzaremos con su candidatura",
             "infelizmente não seguiremos", "purtroppo non proseguiremo",
-            "niestety nie możemy przejść dalej", "nie zakwalifikował się"
+            "niestety nie możemy przejść dalej", "nie zakwalifikował się",
         ]
     },
     "confirmation": {
         "en": [
             "thank you for applying", "application received", "we have received your application",
-            "application submitted", "thanks for applying", "your application has been received"
+            "application submitted", "thanks for applying", "your application has been received",
+            # New expanded signals
+            "application is under review", "reviewing your application",
+            "application is being reviewed", "application has been submitted",
+            "successfully submitted your application", "application was sent to",
+            "applied for the position", "your resume has been received",
+            "acknowledge receipt", "we acknowledge your application",
         ],
         "de": [
-            "vielen dank für ihre bewerbung", "bewerbungseingang", "eingangsbestätigung", "erfolgreich eingegangen"
+            "vielen dank für ihre bewerbung", "bewerbungseingang", "eingangsbestätigung", "erfolgreich eingegangen",
         ],
         "fr": [
-            "nous accusons réception de votre candidature", "merci pour votre candidature", "candidature bien reçue"
+            "nous accusons réception de votre candidature", "merci pour votre candidature", "candidature bien reçue",
+            "bienvenue à bord du processus de recrutement", "nous avons bien reçu votre candidature",
+            "bien recu votre candidature", "candidature a été enregistrée",
+            "avons bien reçu votre candidature",
         ],
         "nl": [
-            "bedankt voor je sollicitatie", "sollicitatie goed ontvangen", "ontvangstbevestiging"
+            "bedankt voor je sollicitatie", "sollicitatie goed ontvangen", "ontvangstbevestiging",
         ],
         "nordic": [
-            "tack för din ansökan", "kiitos hakemuksestasi", "mottatt søknad"
+            "tack för din ansökan", "kiitos hakemuksestasi", "mottatt søknad",
         ],
         "ar": [
-            "شكراً لتقديمك", "تم استلام طلبك بنجاح", "تأكيد استلام طلب التوظيف"
+            "شكراً لتقديمك", "تم استلام طلبك بنجاح", "تأكيد استلام طلب التوظيف",
         ],
         "es_pt_it_pl": [
             "gracias por postular", "recebemos sua candidatura",
-            "grazie per aver inviato la candidatura", "dziękujemy za przesłanie aplikacji"
+            "grazie per aver inviato la candidatura", "dziękujemy za przesłanie aplikacji",
         ]
+    },
+    "recruiter_outreach": {
+        "en": [
+            "your background could be a great match", "job invite from recruiter",
+            "your profile is shortlisted", "you've been chosen", "you've been shortlisted",
+            "we'd like to connect", "interested in your profile",
+            "we found your profile", "your resume caught our attention",
+            "we have a suitable opening", "your profile caught our eye",
+            "we came across your profile", "you appear to be a strong fit",
+            "excited to share this opportunity", "great match for this role",
+            "ideal candidate for", "perfect fit for",
+            "reach out regarding", "reaching out about an opportunity",
+            "i noticed your experience", "your skills align",
+            "we think you'd be a great fit", "profile is shortlisted",
+            "shortlisted! please confirm", "please confirm details",
+            "i am a sr. recruitment consultant", "while reviewing top talents",
+            "your profile has been selected", "we have identified your profile",
+        ],
+        "fr": [
+            "votre profil a retenu notre attention", "nous avons identifié votre profil",
+            "votre candidature nous intéresse", "votre profil correspond",
+            "nous avons trouvé votre profil", "votre expérience nous intéresse",
+        ],
+        "de": [
+            "ihr profil hat unser interesse geweckt", "wir haben ihr profil gefunden",
+            "sie passen hervorragend", "ihre qualifikationen sind sehr interessant",
+        ],
+        "nl": [
+            "uw profiel past bij", "we kwamen uw profiel tegen",
+        ],
+        "ar": [
+            "ملفك الشخصي لفت انتباهنا", "نود التواصل معك بخصوص",
+        ],
+        "es_pt_it_pl": [
+            "su perfil nos ha interesado", "seu perfil chamou nossa atenção",
+            "il suo profilo ci ha interessato", "pana profil nas zainteresował",
+        ]
+    },
+    "job_alert": {
+        "en": [
+            "new jobs match your preferences", "job alert for",
+            "jobs you might be interested in", "jobs we think you'll like",
+            "new jobs for", "job alert", "new job matches",
+            "hot job opportunities", "top employers hiring",
+            "job opportunities waiting", "similar jobs in",
+            "companies are looking for candidates like you",
+            "jobs matching your profile",
+        ],
+        "fr": [
+            "nouvelles offres correspondent", "alerte emploi",
+            "offres d'emploi correspondant à votre profil",
+        ],
+        "de": [
+            "neue stellen passend zu ihrem profil", "jobalarm",
+            "neue jobangebote",
+        ],
     }
 }
 
@@ -504,16 +698,35 @@ def extract_action_links(plain_text: str, html_text: str) -> list[str]:
 
 
 # ══════════════════════════════════════════════════════════════════════
-# MULTI-LINGUAL CLASSIFICATION & TRIAGE ENGINE
+# NOISE FILTERING & MULTI-LINGUAL CLASSIFICATION ENGINE
 # ══════════════════════════════════════════════════════════════════════
+def is_noise_email(from_header: str, subject: str) -> bool:
+    """Pre-filter: returns True if the email is clearly non-job-related noise."""
+    # Check sender domain against noise blocklist
+    email_match = re.search(r'@([a-zA-Z0-9.-]+)', from_header)
+    if email_match:
+        sender_domain = email_match.group(1).lower()
+        for noise_domain in NOISE_SENDER_DOMAINS:
+            if sender_domain == noise_domain or sender_domain.endswith("." + noise_domain):
+                return True
+
+    # Check subject against noise keywords
+    subj_lower = subject.lower()
+    for keyword in NOISE_SUBJECT_KEYWORDS:
+        if keyword in subj_lower:
+            return True
+
+    return False
+
+
 def detect_language(text: str) -> str:
     """Detect language based on multi-lingual keywords."""
     text_lower = text.lower()
     if bool(re.search(r'[\u0600-\u06FF]', text)):
         return "Arabic"
-    if any(k in text_lower for k in ["bewerbung", "vorstellungsgespräch", "herzlichen dank", "kündigungsfrist", "gehaltsvorstellung"]):
+    if any(k in text_lower for k in ["bewerbung", "vorstellungsgespräch", "herzlichen dank", "kündigungsfrist", "gehaltsvorstellung", "einladung", "lebenslauf"]):
         return "German"
-    if any(k in text_lower for k in ["candidature", "entretien", "disponibilités", "prétentions salariales", "cordialement"]):
+    if any(k in text_lower for k in ["candidature", "entretien", "disponibilités", "prétentions salariales", "cordialement", "recrutement", "poste de", "ingénieur", "bienvenue"]):
         return "French"
     if any(k in text_lower for k in ["sollicitatie", "kennismakingsgesprek", "beschikbaarheid", "opzegtermijn", "met vriendelijke groet"]):
         return "Dutch"
@@ -581,34 +794,67 @@ def extract_job_title(subject: str, body: str) -> str:
     return "DevOps / Cloud Role"
 
 
-def classify_email(subject: str, body: str, links: list[str]) -> dict:
-    """Multi-lingual classification across English, German, French, Dutch, Arabic, Nordics, and Romance languages."""
-    text = f"{subject}\n{body}".lower()
-    lang = detect_language(f"{subject}\n{body}")
+def classify_email(subject: str, body: str, links: list[str], from_header: str = "") -> dict:
+    """Multi-lingual classification with weighted scoring, HTML entity decoding, and noise filtering."""
 
-    # Compute signal scores across all language dictionaries
+    # Step 1: Decode HTML entities so French accents (é, ç, à) match signal phrases
+    raw_combined = f"{subject}\n{body}"
+    decoded_combined = html_module.unescape(raw_combined)
+    text = decoded_combined.lower()
+    subject_lower = html_module.unescape(subject).lower()
+
+    lang = detect_language(decoded_combined)
+
+    # Step 2: Weighted scoring — subject matches get 3x, body matches get 2x
     def score_category(cat_name):
         cat_dict = MULTILINGUAL_SIGNALS.get(cat_name, {})
-        total_score = 0
+        subject_score = 0
+        body_score = 0
         for _, phrases in cat_dict.items():
             for p in phrases:
-                if p.lower() in text:
-                    total_score += 2
-        return total_score
+                p_lower = p.lower()
+                if p_lower in subject_lower:
+                    subject_score += 3  # Subject match = strong signal
+                elif p_lower in text:
+                    body_score += 2     # Body match = moderate signal
+        return subject_score + body_score
 
+    # Step 3: Compute scores for all categories
     interview_score = score_category("interview")
-    if any(l for l in links if any(k in l.lower() for k in ["calendly", "goodtime", "savvycal", "chilipiper", "schedule", "meet.google", "teams.microsoft", "zoom.us"])):
-        interview_score += 4
-
     assessment_score = score_category("assessment")
-    if any(l for l in links if any(k in l.lower() for k in ["hackerrank", "codility", "testgorilla", "byteboard", "hirevue"])):
-        assessment_score += 4
-
     inquiry_score = score_category("inquiry")
     rejection_score = score_category("rejection")
     confirmation_score = score_category("confirmation")
+    outreach_score = score_category("recruiter_outreach")
+    job_alert_score = score_category("job_alert")
 
-    # Classification logic
+    # Step 4: Link presence bonuses
+    meeting_link_keywords = ["calendly", "goodtime", "savvycal", "chilipiper", "schedule",
+                              "meet.google", "teams.microsoft", "zoom.us", "webex"]
+    assessment_link_keywords = ["hackerrank", "codility", "testgorilla", "byteboard",
+                                 "hirevue", "codesignal", "coderbyte", "mettl", "amcat"]
+
+    if any(lnk for lnk in links if any(k in lnk.lower() for k in meeting_link_keywords)):
+        interview_score += 5
+
+    if any(lnk for lnk in links if any(k in lnk.lower() for k in assessment_link_keywords)):
+        assessment_score += 5
+
+    # Step 5: Recruiter platform domain bonus (sender is from ATS)
+    if from_header:
+        sender_domain_match = re.search(r'@([a-zA-Z0-9.-]+)', from_header)
+        if sender_domain_match:
+            sender_domain = sender_domain_match.group(1).lower()
+            for ats_domain in RECRUITER_PLATFORM_DOMAINS:
+                if sender_domain == ats_domain or sender_domain.endswith("." + ats_domain):
+                    # ATS senders boost interview/assessment/confirmation scores
+                    interview_score += 2
+                    assessment_score += 1
+                    confirmation_score += 1
+                    break
+
+    # Step 6: Classification decision tree (lowered thresholds)
+    # Rejection: needs strong signal and no competing interview/assessment
     if rejection_score >= 3 and interview_score < 2 and assessment_score < 2:
         return {
             "category": "Rejection",
@@ -619,6 +865,7 @@ def classify_email(subject: str, body: str, links: list[str]) -> dict:
             "language": lang
         }
 
+    # Interview: lowered threshold — single strong subject match is enough
     if interview_score >= 2 or (links and interview_score >= 1):
         action = "Book interview slot via scheduling link" if links else "Reply with your availability to schedule interview"
         return {
@@ -630,6 +877,7 @@ def classify_email(subject: str, body: str, links: list[str]) -> dict:
             "language": lang
         }
 
+    # Assessment: lowered threshold
     if assessment_score >= 2:
         return {
             "category": "Technical Assessment",
@@ -640,6 +888,7 @@ def classify_email(subject: str, body: str, links: list[str]) -> dict:
             "language": lang
         }
 
+    # Inquiry/Availability: lowered threshold
     if inquiry_score >= 2:
         return {
             "category": "Availability / Inquiry",
@@ -650,13 +899,36 @@ def classify_email(subject: str, body: str, links: list[str]) -> dict:
             "language": lang
         }
 
-    if confirmation_score >= 2:
+    # Recruiter Outreach: personal recruiter interest (is_next_step = True)
+    if outreach_score >= 2:
+        return {
+            "category": "Recruiter Outreach",
+            "priority": "🟠 Recruiter Interest",
+            "action_required": "Review and respond to recruiter — potential opportunity",
+            "is_next_step": True,
+            "badge": "🟠 Recruiter Outreach",
+            "language": lang
+        }
+
+    # Application Confirmation: lowered threshold
+    if confirmation_score >= 1:
         return {
             "category": "Application Confirmation",
             "priority": "⚪ Info Only",
             "action_required": "Application acknowledged (pending review)",
             "is_next_step": False,
             "badge": "⚪ Confirmation",
+            "language": lang
+        }
+
+    # Job Alert / Newsletter
+    if job_alert_score >= 2:
+        return {
+            "category": "Job Alert",
+            "priority": "📋 Job Alert",
+            "action_required": "Browse job alert for relevant openings",
+            "is_next_step": False,
+            "badge": "📋 Job Alert",
             "language": lang
         }
 
@@ -785,9 +1057,14 @@ def scan_single_account(account: dict, days_back: int, max_emails: int) -> list[
                         date_sort = datetime.now().strftime("%Y-%m-%d")
 
                     plain_body, html_body = extract_email_body(msg)
+
+                    # Pre-filter: skip non-job noise (banking, shopping, streaming, etc.)
+                    if is_noise_email(from_header, subject):
+                        continue
+
                     links = extract_action_links(plain_body, html_body)
 
-                    classification = classify_email(subject, plain_body, links)
+                    classification = classify_email(subject, plain_body, links, from_header)
                     company = extract_company_name(from_header, subject, plain_body)
                     role = extract_job_title(subject, plain_body)
                     primary_link = links[0] if links else ""
@@ -1048,15 +1325,25 @@ def main():
         invites = clean_df[clean_df["Category"] == "Interview Invitation"]
         assessments = clean_df[clean_df["Category"] == "Technical Assessment"]
         inquiries = clean_df[clean_df["Category"] == "Availability / Inquiry"]
+        outreach = clean_df[clean_df["Category"] == "Recruiter Outreach"] if "Category" in clean_df.columns else pd.DataFrame()
+        confirmations = clean_df[clean_df["Category"] == "Application Confirmation"] if "Category" in clean_df.columns else pd.DataFrame()
+        job_alerts = clean_df[clean_df["Category"] == "Job Alert"] if "Category" in clean_df.columns else pd.DataFrame()
+        rejections = clean_df[clean_df["Category"] == "Rejection"] if "Category" in clean_df.columns else pd.DataFrame()
+        general = clean_df[clean_df["Category"] == "General Update"] if "Category" in clean_df.columns else pd.DataFrame()
 
         log("\n" + "=" * 70)
-        log("  EMAIL TRIAGE COMPLETE — NEXT STEPS SUMMARY", "OK")
-        log(f"   🟢 Interview Invitations : {len(invites)}")
-        log(f"   🔵 Technical Assessments : {len(assessments)}")
-        log(f"   🟡 Availability Requests : {len(inquiries)}")
-        log(f"   ⭐ Total Next Steps Ready: {len(next_steps)}")
-        log(f"   📊 Master Excel Workbook : {MASTER_EXCEL_PATH}")
-        log(f"   📄 Master CSV Database   : {MASTER_CSV_PATH}")
+        log("  EMAIL TRIAGE COMPLETE — FULL CLASSIFICATION SUMMARY", "OK")
+        log(f"   🟢 Interview Invitations  : {len(invites)}")
+        log(f"   🔵 Technical Assessments  : {len(assessments)}")
+        log(f"   🟡 Availability Requests  : {len(inquiries)}")
+        log(f"   🟠 Recruiter Outreach     : {len(outreach)}")
+        log(f"   ⚪ Application Confirms   : {len(confirmations)}")
+        log(f"   📋 Job Alerts / Newsletters: {len(job_alerts)}")
+        log(f"   🔴 Rejections             : {len(rejections)}")
+        log(f"   ⚪ General Updates         : {len(general)}")
+        log(f"   ⭐ Total Next Steps Ready : {len(next_steps)}")
+        log(f"   📊 Master Excel Workbook  : {MASTER_EXCEL_PATH}")
+        log(f"   📄 Master CSV Database    : {MASTER_CSV_PATH}")
         log("=" * 70)
     else:
         log("No email records to save. Ensure your 3 account credentials are configured in email_config.json", "WARN")

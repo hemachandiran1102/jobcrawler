@@ -436,6 +436,21 @@ body.dark .modal-input { background: #111a2d; border-color: #273451; color: #fff
   color: #f87171;
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
+.badge-outreach {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+.badge-alert {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+.badge-confirmation {
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
 .badge-general {
   background: rgba(148, 163, 184, 0.15);
   color: #cbd5e1;

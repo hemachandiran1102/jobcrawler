@@ -153,6 +153,9 @@ function renderMetrics() {
   const assessments = items.filter((d) => d.Category === 'Technical Assessment');
   const inquiries = items.filter((d) => (d.Category || '').includes('Availability') || (d.Category || '').includes('Inquiry'));
   const rejections = items.filter((d) => d.Category === 'Rejection');
+  const outreach = items.filter((d) => d.Category === 'Recruiter Outreach');
+  const jobAlerts = items.filter((d) => d.Category === 'Job Alert');
+  const confirmations = items.filter((d) => d.Category === 'Application Confirmation');
 
   if ($('metric-action-count')) $('metric-action-count').textContent = nextSteps.length;
   if ($('metric-invites-count')) $('metric-invites-count').textContent = invites.length;
@@ -170,6 +173,9 @@ function renderMetrics() {
   if ($('tab-inquiries-count')) $('tab-inquiries-count').textContent = inquiries.length;
   if ($('tab-all-count')) $('tab-all-count').textContent = items.length;
   if ($('tab-rejections-count')) $('tab-rejections-count').textContent = rejections.length;
+  if ($('tab-outreach-count')) $('tab-outreach-count').textContent = outreach.length;
+  if ($('tab-alerts-count')) $('tab-alerts-count').textContent = jobAlerts.length;
+  if ($('tab-confirmations-count')) $('tab-confirmations-count').textContent = confirmations.length;
 
   // Account count badges
   if ($('acc-count-all')) $('acc-count-all').textContent = items.length;
@@ -197,6 +203,12 @@ function getFilteredItems() {
     list = list.filter((d) => (d.Category || '').includes('Availability') || (d.Category || '').includes('Inquiry'));
   } else if (state.selectedTab === 'rejections') {
     list = list.filter((d) => d.Category === 'Rejection');
+  } else if (state.selectedTab === 'outreach') {
+    list = list.filter((d) => d.Category === 'Recruiter Outreach');
+  } else if (state.selectedTab === 'alerts') {
+    list = list.filter((d) => d.Category === 'Job Alert');
+  } else if (state.selectedTab === 'confirmations') {
+    list = list.filter((d) => d.Category === 'Application Confirmation');
   }
 
   // 3. Filter by Search Query
@@ -249,6 +261,18 @@ function renderCards() {
       cardClass += ' is-inquiry';
       badgeClass = 'badge-inquiry';
       icon = '🟡';
+    } else if (cat === 'Recruiter Outreach') {
+      cardClass += ' is-outreach';
+      badgeClass = 'badge-outreach';
+      icon = '🟠';
+    } else if (cat === 'Job Alert') {
+      cardClass += ' is-alert';
+      badgeClass = 'badge-alert';
+      icon = '📋';
+    } else if (cat === 'Application Confirmation') {
+      cardClass += ' is-confirmation';
+      badgeClass = 'badge-confirmation';
+      icon = '⚪';
     } else if (cat === 'Rejection') {
       cardClass += ' is-rejection';
       badgeClass = 'badge-rejection';
@@ -345,6 +369,9 @@ window.openEmailModal = (idx) => {
   if (cat === 'Interview Invitation') icon = '🟢';
   else if (cat === 'Technical Assessment') icon = '🔵';
   else if (cat.includes('Availability')) icon = '🟡';
+  else if (cat === 'Recruiter Outreach') icon = '🟠';
+  else if (cat === 'Job Alert') icon = '📋';
+  else if (cat === 'Application Confirmation') icon = '⚪';
   else if (cat === 'Rejection') icon = '🔴';
 
   $('modal-email-icon').textContent = icon;
