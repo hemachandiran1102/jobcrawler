@@ -727,7 +727,23 @@ def scan_single_account(account: dict, days_back: int, max_emails: int) -> list[
 
     since_date = (datetime.now() - timedelta(days=days_back)).strftime("%d-%b-%Y")
 
-    for folder in folders:
+    # Auto-discover Spam/Junk folders if available on server
+    scan_folders = list(folders)
+    try:
+        typ, raw_folders = mail.list()
+        if typ == "OK" and raw_folders:
+            for rf in raw_folders:
+                rf_str = rf.decode("utf-8", errors="ignore")
+                if r"\Junk" in rf_str or r"\Spam" in rf_str or "spam" in rf_str.lower() or "junk" in rf_str.lower():
+                    m = re.search(r'"([^"]+)"\s*$', rf_str) or re.search(r'\s+([^\s]+)\s*$', rf_str)
+                    if m:
+                        detected_spam_folder = m.group(1).strip('"')
+                        if detected_spam_folder not in scan_folders and not detected_spam_folder.startswith("Sync Issues"):
+                            scan_folders.append(detected_spam_folder)
+    except Exception:
+        pass
+
+    for folder in scan_folders:
         try:
             status, _ = mail.select(f'"{folder}"', readonly=True)
             if status != "OK":
@@ -797,6 +813,7 @@ def scan_single_account(account: dict, days_back: int, max_emails: int) -> list[
                         "Subject": subject,
                         "Email Snippet": snippet,
                         "Full Email Body": plain_body.strip(),
+                        "Folder": folder,
                         "Replied Status": "No",
                         "Notes": "",
                     }
