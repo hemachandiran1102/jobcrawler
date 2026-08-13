@@ -261,8 +261,21 @@ def extract_skills(text: str) -> str:
 
 
 def extract_visa(text: str) -> str:
-    t = (text or "").lower()
-    return "Yes" if any(k in t for k in VISA_KEYWORDS) else "No"
+    if not text or not isinstance(text, str):
+        return "Not Specified"
+    t = text.lower()
+    no_sponsorship = ["no visa sponsorship", "cannot sponsor", "unable to sponsor", "not eligible for visa sponsorship", "must have right to work", "must be legally authorized", "valid work permit required", "eu citizenship required", "citizens or permanent residents only"]
+    if any(k in t for k in no_sponsorship):
+        return "No Sponsorship"
+    visa_sponsored = ["visa sponsorship available", "visa sponsorship provided", "visa sponsored", "will sponsor visa", "offers visa sponsorship", "blue card", "kennismigrant", "passeport talent", "tier 2 visa", "skilled worker visa", "critical skills employment permit", "tech visa", "iqama transferable", "relocation and visa"]
+    if any(k in t for k in visa_sponsored):
+        return "Visa Sponsored"
+    relocation = ["relocation package", "relocation assistance", "relocation support", "relocation allowance", "relocation provided", "full relocation", "international relocation"]
+    if any(k in t for k in relocation):
+        return "Relocation Provided"
+    if any(k in t for k in ["visa", "sponsorship", "work permit", "relocation"]):
+        return "Visa Mentioned"
+    return "Not Specified"
 
 
 def calculate_match_score(title: str, desc: str) -> str:

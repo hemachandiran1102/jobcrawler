@@ -311,7 +311,7 @@ function renderDateTabs() {
 function loadJobs(jobs, sourceLabel = 'your export') {
   const cleanJobs = deduplicateJobsArray(jobs);
   state.jobs = cleanJobs; state.page = 1;
-  state.filters = { country: '', source: '', score: '', workplace: '', recent: '', status: '' }; state.query = ''; $('search').value = '';
+  state.filters = { country: '', source: '', score: '', workplace: '', posted: '', recent: '', visa: '', status: '' }; state.query = ''; $('search').value = '';
   populateFilters(); renderDateTabs(); renderAll(); updateStoredCount();
   showToast(`Loaded ${cleanJobs.length.toLocaleString()} opportunities from ${sourceLabel}.`);
 }
@@ -352,13 +352,14 @@ function applyFilters() {
     const matchSelectedDate = !state.selectedDate || state.selectedDate === 'all' || displayCrawlDate === state.selectedDate;
 
     const isApplied = isJobApplied(job);
+    const matchVisa = !f.visa || String(job['Visa Sponsorship Mentioned'] || job['Visa Sponsorship'] || '').toLowerCase().includes(f.visa.toLowerCase());
 
     return (!q || roleText(job).includes(q)) &&
            (!f.country || job.Country === f.country) &&
            (!f.source || src.toLowerCase().includes(f.source.toLowerCase())) &&
            (!f.workplace || job['Remote / Workplace'] === f.workplace) &&
            (!f.score || scoreOf(job) >= Number(f.score)) &&
-           isCrawlRecent && isPostedRecent && matchSelectedDate &&
+           isCrawlRecent && isPostedRecent && matchSelectedDate && matchVisa &&
            (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && isApplied) || (f.status === 'not-applied' && !isApplied));
   });
 
@@ -667,7 +668,7 @@ function initCountryChartToolbar() {
 }
 
 function renderFilters() {
-  const labels = { country: 'Country', source: 'Source', score: 'Match ≥', workplace: 'Workplace', posted: 'Job Posted', recent: 'Crawl Date', status: 'Status' };
+  const labels = { country: 'Country', source: 'Source', score: 'Match ≥', workplace: 'Workplace', posted: 'Job Posted', recent: 'Crawl Date', visa: 'Visa / Reloc', status: 'Status' };
   const active = Object.entries(state.filters).filter(([,v]) => v);
   if ($('filter-count')) $('filter-count').textContent = active.length;
   if ($('filter-button')) $('filter-button').classList.toggle('has-filters', active.length > 0);
@@ -692,7 +693,7 @@ function saveSheetsWebhookUrl(url) {
 ['import-button','hero-import'].forEach((id) => $(id).onclick = () => $('file-input').click());
 $('file-input').onchange = (e) => { importFile(e.target.files[0]); e.target.value = ''; };
 $('search').oninput = (e) => { state.query = e.target.value; state.page = 1; renderAll(); };
-['country','source','score','workplace','posted','recent','status'].forEach((id) => {
+['country','source','score','workplace','posted','recent','visa','status'].forEach((id) => {
   if ($(`${id}-filter`)) {
     $(`${id}-filter`).onchange = (e) => { state.filters[id] = e.target.value; state.page = 1; renderAll(); };
   }
@@ -705,13 +706,37 @@ $('theme-button').onclick=()=>document.body.classList.toggle('dark'); $('mobile-
 $('clear-data').onclick = handleClearData;
 
 function fetchJobsViaJSONP(webhookUrl) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    // Attempt 1: Standard Fetch (CORS with redirect follow)
+    try {
+      const sep = webhookUrl.includes('?') ? '&' : '?';
+      const fetchResp = await fetch(`${webhookUrl}${sep}action=get_jobs`, { method: 'GET', redirect: 'follow' });
+      if (fetchResp.ok) {
+        const text = await fetchResp.text();
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed && (parsed.jobs || parsed.success)) {
+            return resolve(parsed);
+          }
+        } catch {
+          // If response was wrapped in callback
+          const jsonMatch = text.match(/^[a-zA-Z0-9_$]+\(([\s\S]*)\)\s*;?$/);
+          if (jsonMatch) {
+            return resolve(JSON.parse(jsonMatch[1]));
+          }
+        }
+      }
+    } catch {
+      // Fall through to JSONP script injection
+    }
+
+    // Attempt 2: Script Tag Injection JSONP with 60s timeout
     const callbackName = 'gsCallback_' + Math.random().toString(36).substring(2);
     const script = document.createElement('script');
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error('JSONP timeout'));
-    }, 15000);
+      reject(new Error('Google Sheets request timed out after 60 seconds.'));
+    }, 60000);
 
     const cleanup = () => {
       clearTimeout(timer);
@@ -724,9 +749,9 @@ function fetchJobsViaJSONP(webhookUrl) {
       resolve(data);
     };
 
-    script.onerror = (err) => {
+    script.onerror = () => {
       cleanup();
-      reject(err);
+      reject(new Error('Network error connecting to Google Apps Script.'));
     };
 
     const separator = webhookUrl.includes('?') ? '&' : '?';
@@ -813,6 +838,18 @@ function renderTable() {
       sourceBadge = `<span class="source-tag">${esc(sourceRaw)}</span>`;
     }
 
+    const visaVal = String(job['Visa Sponsorship Mentioned'] || job['Visa Sponsorship'] || '').trim();
+    let visaBadge = '<span class="work-pill" style="color:var(--text-muted); opacity:0.5;">—</span>';
+    if (visaVal === 'Visa Sponsored') {
+      visaBadge = '<span class="work-pill" style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-weight:700;">🛂 Visa Sponsored</span>';
+    } else if (visaVal === 'Relocation Provided') {
+      visaBadge = '<span class="work-pill" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); font-weight:700;">✈️ Relocation</span>';
+    } else if (visaVal === 'Visa Mentioned') {
+      visaBadge = '<span class="work-pill" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); font-weight:700;">🌐 Visa Mentioned</span>';
+    } else if (visaVal === 'No Sponsorship') {
+      visaBadge = '<span class="work-pill" style="background:rgba(239,68,68,0.12); color:#f87171; border:1px solid rgba(239,68,68,0.25);">🚫 No Visa</span>';
+    }
+
     return `<tr>
     <td class="bookmark-cell"><button class="bookmark ${saved.has(keyFor(job)) ? 'active' : ''}" data-save="${esc(keyFor(job))}" title="${saved.has(keyFor(job)) ? 'Remove from shortlist' : 'Add to shortlist'}">${saved.has(keyFor(job)) ? '★' : '☆'}</button></td>
     <td class="col-role"><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Company || 'Not stated')} ${sourceBadge}</span></td>
@@ -820,6 +857,7 @@ function renderTable() {
     <td class="col-posted"><span class="track">${esc(postedDate)}</span></td>
     <td class="col-crawl"><span class="track">${esc(crawlDate)}</span></td>
     <td class="col-workplace"><span class="work-pill ${remote ? 'remote' : ''}">${esc(work)}</span></td>
+    <td class="col-visa">${visaBadge}</td>
     <td class="col-match"><span class="match-pill ${score ? `score-${score}` : 'score-none'}">${score ? score + '%' : '—'}</span></td>
     <td class="col-applied">
       <button class="applied-badge ${isApplied ? 'applied' : ''}" data-applied="${esc(keyFor(job))}">
@@ -827,7 +865,7 @@ function renderTable() {
       </button>
     </td>
     <td class="col-link open-cell">${job['Job URL'] ? `<a class="open-link" href="${esc(job['Job URL'])}" target="_blank" rel="noopener" title="Open job posting">↗</a>` : '—'}</td></tr>`;
-  }).join('') : `<tr><td colspan="9" class="empty">No opportunities match these filters.<br/><button class="clear-filters" id="empty-clear">Clear filters</button></td></tr>`;
+  }).join('') : `<tr><td colspan="10" class="empty">No opportunities match these filters.<br/><button class="clear-filters" id="empty-clear">Clear filters</button></td></tr>`;
 
   document.querySelectorAll('[data-save]').forEach((button) => button.onclick = () => { const keys = shortlist(), key = button.dataset.save; const adding = !keys.has(key); adding ? keys.add(key) : keys.delete(key); saveShortlist(keys); renderAll(); showToast(adding ? 'Added to your shortlist.' : 'Removed from your shortlist.'); });
 
@@ -867,7 +905,7 @@ function renderTable() {
 
 function pagination(pages) { const set = new Set([1,pages,state.page-1,state.page,state.page+1].filter((n) => n >= 1 && n <= pages)); let previous = 0; return [...set].sort((a,b)=>a-b).map((n) => `${n-previous > 1 ? '<span>…</span>' : ''}<button class="${n===state.page?'active':''}" data-page="${n}">${n}</button>`).join(''); }
 function renderAll() { renderMetrics(); renderFilters(); renderTable(); $('table-view-button').classList.toggle('active', !state.compact); $('compact-view-button').classList.toggle('active', state.compact); document.querySelector('.table-wrap').classList.toggle('compact', state.compact); }
-function clearFilters() { state.filters = { country:'', source:'', score:'', workplace:'', posted:'', recent:'', status:'' }; state.query = ''; state.page = 1; $('search').value=''; ['country','source','score','workplace','posted','recent','status'].forEach((id)=>{ if($(`${id}-filter`)) $(`${id}-filter`).value=''; }); renderAll(); }
+function clearFilters() { state.filters = { country:'', source:'', score:'', workplace:'', posted:'', recent:'', visa:'', status:'' }; state.query = ''; state.page = 1; $('search').value=''; ['country','source','score','workplace','posted','recent','visa','status'].forEach((id)=>{ if($(`${id}-filter`)) $(`${id}-filter`).value=''; }); renderAll(); }
 function focusJob(job) { clearFilters(); state.query = job['Job Title'] || ''; $('search').value = state.query; applyFilters(); const exact = state.filtered.findIndex((x)=>keyFor(x)===keyFor(job)); state.page = Math.floor(Math.max(exact,0)/PAGE_SIZE)+1; renderTable(); $('roles').scrollIntoView({ behavior:'smooth', block:'start' }); }
 function showToast(message) { const toast = $('toast'); toast.textContent = message; toast.classList.add('show'); clearTimeout(showToast.timer); showToast.timer = setTimeout(()=>toast.classList.remove('show'), 3500); }
 

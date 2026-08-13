@@ -321,13 +321,14 @@ function applyFilters() {
     const matchSelectedDate = !state.selectedDate || state.selectedDate === 'all' || displayCrawlDate === state.selectedDate;
 
     const isApplied = isJobApplied(job);
+    const matchVisa = !f.visa || String(job['Visa Sponsorship Mentioned'] || job['Visa Sponsorship'] || '').toLowerCase().includes(f.visa.toLowerCase());
 
     return (!q || roleText(job).includes(q)) &&
            (!f.country || job.Country === f.country) &&
            (!f.source || source.includes(f.source.toLowerCase())) &&
            (!f.workplace || job['Remote / Workplace'] === f.workplace) &&
            (!f.score || scoreOf(job) >= Number(f.score)) &&
-           isCrawlRecent && isPostedRecent && matchSelectedDate &&
+           isCrawlRecent && isPostedRecent && matchSelectedDate && matchVisa &&
            (!f.status || (f.status === 'shortlisted' && s.has(keyFor(job))) || (f.status === 'applied' && isApplied) || (f.status === 'not-applied' && !isApplied) || (f.status === 'indeed' && source.includes('indeed')) || (f.status === 'glassdoor' && source.includes('glassdoor')));
   });
 
@@ -468,6 +469,18 @@ function renderTable() {
     const source = (job.Source || 'Indeed').trim();
     const sourceClass = source.toLowerCase().includes('glassdoor') ? 'source-glassdoor' : 'source-indeed';
 
+    const visaVal = String(job['Visa Sponsorship Mentioned'] || job['Visa Sponsorship'] || '').trim();
+    let visaBadge = '<span class="work-pill" style="color:var(--text-muted); opacity:0.5;">—</span>';
+    if (visaVal === 'Visa Sponsored') {
+      visaBadge = '<span class="work-pill" style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-weight:700;">🛂 Visa Sponsored</span>';
+    } else if (visaVal === 'Relocation Provided') {
+      visaBadge = '<span class="work-pill" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); font-weight:700;">✈️ Relocation</span>';
+    } else if (visaVal === 'Visa Mentioned') {
+      visaBadge = '<span class="work-pill" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); font-weight:700;">🌐 Visa Mentioned</span>';
+    } else if (visaVal === 'No Sponsorship') {
+      visaBadge = '<span class="work-pill" style="background:rgba(239,68,68,0.12); color:#f87171; border:1px solid rgba(239,68,68,0.25);">🚫 No Visa</span>';
+    }
+
     return `<tr>
     <td class="bookmark-cell"><button class="bookmark ${saved.has(keyFor(job)) ? 'active' : ''}" data-save="${esc(keyFor(job))}">${saved.has(keyFor(job)) ? '★' : '☆'}</button></td>
     <td class="col-role"><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Company || 'Not stated')}</span></td>
@@ -476,6 +489,7 @@ function renderTable() {
     <td class="col-posted"><span class="track">${esc(postedDate)}</span></td>
     <td class="col-crawl"><span class="track">${esc(crawlDate)}</span></td>
     <td class="col-workplace"><span class="work-pill ${remote ? 'remote' : ''}">${esc(work)}</span></td>
+    <td class="col-visa">${visaBadge}</td>
     <td class="col-match"><span class="match-pill ${score ? `score-${score}` : 'score-none'}">${score ? score + '%' : '—'}</span></td>
     <td class="col-applied">
       <button class="applied-badge ${isApplied ? 'applied' : ''}" data-applied="${esc(keyFor(job))}">
@@ -483,7 +497,7 @@ function renderTable() {
       </button>
     </td>
     <td class="col-link open-cell">${job['Job URL'] ? `<a class="open-link" href="${esc(job['Job URL'])}" target="_blank" rel="noopener" title="Open job posting">↗</a>` : '—'}</td></tr>`;
-  }).join('') : `<tr><td colspan="10" class="empty">No Indeed or Glassdoor opportunities match these filters.</td></tr>`;
+  }).join('') : `<tr><td colspan="11" class="empty">No Indeed or Glassdoor opportunities match these filters.</td></tr>`;
 
   document.querySelectorAll('[data-save]').forEach((b) => b.onclick = () => {
     const keys = shortlist(), key = b.dataset.save;
@@ -527,7 +541,7 @@ function pagination(pages) {
 }
 
 function renderFilters() {
-  const labels = { country: 'Country', source: 'Source', score: 'Match ≥', workplace: 'Workplace', posted: 'Job Posted', recent: 'Crawl Date', status: 'Status' };
+  const labels = { country: 'Country', source: 'Source', score: 'Match ≥', workplace: 'Workplace', posted: 'Job Posted', recent: 'Crawl Date', visa: 'Visa / Reloc', status: 'Status' };
   const active = Object.entries(state.filters).filter(([, v]) => v);
   if ($('filter-count')) $('filter-count').textContent = active.length;
   if ($('filter-button')) $('filter-button').classList.toggle('has-filters', active.length > 0);
@@ -684,7 +698,7 @@ function initUIListeners() {
     };
   }
 
-  ['country', 'source', 'score', 'workplace', 'posted', 'recent', 'status'].forEach((k) => {
+  ['country', 'source', 'score', 'workplace', 'posted', 'recent', 'visa', 'status'].forEach((k) => {
     const sel = $(`${k}-filter`);
     if (sel) {
       sel.onchange = (e) => {
@@ -697,8 +711,8 @@ function initUIListeners() {
 
   if ($('clear-filters')) {
     $('clear-filters').onclick = () => {
-      state.filters = { country: '', source: '', score: '', workplace: '', posted: '', recent: '', status: '' };
-      ['country', 'source', 'score', 'workplace', 'posted', 'recent', 'status'].forEach((k) => {
+      state.filters = { country: '', source: '', score: '', workplace: '', posted: '', recent: '', visa: '', status: '' };
+      ['country', 'source', 'score', 'workplace', 'posted', 'recent', 'visa', 'status'].forEach((k) => {
         if ($(`${k}-filter`)) $(`${k}-filter`).value = '';
       });
       state.page = 1;

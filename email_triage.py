@@ -334,38 +334,58 @@ MULTILINGUAL_SIGNALS = {
             "not selected for this role", "carefully reviewed your application",
             "at this time we have decided", "wish you all the best",
             "will not be progressing", "regret to inform",
-            # New expanded signals
             "unable to move forward", "will not be moving forward",
             "not be proceeding", "decided to go with another", "chose another candidate",
             "no longer being considered", "position has been filled",
             "role has been filled", "won't be advancing",
             "not a fit at this time", "decided to proceed with other",
+            "unable to offer you", "not advancing", "unsuccessful", "not successful",
+            "application was not successful", "after careful consideration",
+            "not able to offer", "chosen to move forward with other",
+            "we are unable to proceed", "will not be moving forward with your candidacy",
+            "we have chosen to move forward with another",
+            "although your experience is impressive",
+            "we've decided to pursue other", "not moving you forward",
+            "not moving ahead", "we won't be moving forward",
         ],
         "de": [
             "leider müssen wir ihnen mitteilen", "haben uns für einen anderen kandidaten entschieden",
             "nicht weiterverfolgen", "bedauern wir ihnen mitteilen", "absage",
+            "leider nicht berücksichtigen", "nicht in die engere auswahl", "anderweitig entschieden",
+            "bewerbung leider absagen", "wir bedauern sehr", "ihre bewerbung konnte leider nicht",
+            "nicht fortführen", "leider eine absage", "konnten ihre bewerbung leider nicht",
         ],
         "fr": [
             "nous avons le regret de vous informer", "nous ne retenons pas votre candidature",
             "malheureusement", "poursuivre avec d'autres candidats", "pas retenu votre profil",
             "nous ne sommes pas en mesure de donner suite", "candidature n'a pas été retenue",
+            "ne donnera pas suite", "d'autres candidatures correspondaient davantage",
+            "refus de candidature", "votre candidature n'a pas été sélectionnée",
+            "nous sommes au regret", "ne donnera pas une suite favorable",
+            "ne pouvons donner une suite favorable", "pas été retenu",
         ],
         "nl": [
             "helaas moeten wij u mededelen", "gekozen voor een andere kandidaat",
-            "niet verder gaan met je sollicitatie", "afwijzing",
+            "niet verder gaan met je sollicitatie", "afwijzing", "helaas niet geselecteerd",
+            "niet in aanmerking", "we hebben besloten niet verder te gaan", "helaas afwijzen",
+            "sollicitatie niet voortzetten",
         ],
         "nordic": [
             "tyvärr har vi valt att gå vidare med andra", "vi kan tyvärr inte erbjuda dig",
-            "emme valitettavasti etene", "valitettavasti emme voi",
+            "emme valitettavasti etene", "valitettavasti emme voi", "avslag på søknad",
+            "ikke kommet videre", "inte gått vidare", "valitettavasti emme voi tarjota",
         ],
         "ar": [
             "للأسف نعتذر عن عدم المضي قدماً", "قررنا المضي مع مرشحين آخرين",
             "نعتذر عن عدم قبول الطلب", "نتمنى لك التوفيق في فرص أخرى",
+            "نأسف لإبلاغك", "نعتذر عن المضي قدما",
         ],
         "es_pt_it_pl": [
             "lamentamos informarle", "no avanzaremos con su candidatura",
             "infelizmente não seguiremos", "purtroppo non proseguiremo",
             "niestety nie możemy przejść dalej", "nie zakwalifikował się",
+            "non è stata selezionata", "candidatura non accolta", "odrzucenie aplikacji",
+            "lamentamos comunicar", "não seguiremos com o processo",
         ]
     },
     "confirmation": {
@@ -854,8 +874,8 @@ def classify_email(subject: str, body: str, links: list[str], from_header: str =
                     break
 
     # Step 6: Classification decision tree (lowered thresholds)
-    # Rejection: needs strong signal and no competing interview/assessment
-    if rejection_score >= 3 and interview_score < 2 and assessment_score < 2:
+    # Rejection: captures single-phrase multi-lingual rejections
+    if rejection_score >= 2 and interview_score < 2 and assessment_score < 2:
         return {
             "category": "Rejection",
             "priority": "🔴 Low - Archived",
