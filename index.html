@@ -17,6 +17,7 @@
         <nav class="nav" aria-label="Main navigation">
           <a class="active" href="index.html" id="nav-overview-link"><span>💼</span> LinkedIn Board</a>
           <a href="indeed_glassdoor.html" id="nav-ig-link"><span>🌐</span> Indeed & Glassdoor <b id="nav-ig-total" style="background:#2563eb; color:#ffffff; padding:1px 6px; border-radius:8px; font-size:11px; margin-left:auto;">0</b></a>
+          <a href="#inbound-pipeline" id="nav-inbound-link"><span>📬</span> Inbound Next Steps <b id="nav-nextsteps-count" style="background:#10b981; color:#ffffff; padding:1px 6px; border-radius:8px; font-size:11px; margin-left:auto;">0</b></a>
           <a href="#roles" id="nav-roles-link"><span>⌕</span> Explore roles</a>
           <a href="#shortlist" id="nav-shortlist-link"><span>★</span> Shortlist <b id="nav-shortlist">0</b></a>
           <a href="#applied" id="nav-applied-link"><span>✓</span> Applied <b id="nav-applied" class="nav-applied-badge">0</b></a>
@@ -119,6 +120,32 @@
           </article>
         </section>
 
+        <!-- 📬 INBOUND INTERVIEW & NEXT STEPS PIPELINE -->
+        <section class="inbound-section" id="inbound-pipeline" style="margin-bottom: 2rem;">
+          <div class="queue-master-bar" style="border-left: 3px solid #10b981;">
+            <div class="queue-left">
+              <h2>📬 Inbound Next Steps & Interviews <span class="queue-count-badge" id="inbound-count-badge" style="background:#10b981; color:#ffffff;">0 Actionable</span></h2>
+            </div>
+            <div class="queue-center">
+              <div class="status-tabs-bar" id="inbound-tabs-bar">
+                <button class="status-pill active" data-inbound-tab="next-steps" style="border-color: rgba(16,185,129,0.4);">⚡ Action Required (<b id="tab-inbound-action">0</b>)</button>
+                <button class="status-pill" data-inbound-tab="invites">🟢 Invites (<b id="tab-inbound-invites">0</b>)</button>
+                <button class="status-pill" data-inbound-tab="assessments">🔵 Assessments (<b id="tab-inbound-assessments">0</b>)</button>
+                <button class="status-pill" data-inbound-tab="inquiries">🟡 Availability (<b id="tab-inbound-inquiries">0</b>)</button>
+                <button class="status-pill" data-inbound-tab="all">All Responses (<b id="tab-inbound-all">0</b>)</button>
+              </div>
+            </div>
+            <div class="queue-right">
+              <button class="filter-button" id="scan-emails-btn" style="background:#10b981; color:#0f172a; font-weight:700; border:none;">🔄 Sync Emails</button>
+            </div>
+          </div>
+          <div id="inbound-cards-container" class="inbound-cards-grid" style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1rem;">
+            <div class="inbound-empty-card" style="grid-column: 1 / -1; padding: 2rem; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px; text-align: center; color: #94a3b8;">
+              <p style="margin: 0; font-size: 14px;">📬 No triaged recruiter next steps loaded yet. Run <code>python email_triage.py</code> to scan your inbox.</p>
+            </div>
+          </div>
+        </section>
+
         <section class="roles-section" id="roles">
           <div class="queue-master-bar">
             <div class="queue-left">
@@ -188,7 +215,7 @@
           <h2 id="auth-title">🔐 Protected Access</h2>
           <p id="auth-subtitle">Enter your master password to unlock your job board.</p>
         </div>
-        <form id="auth-form" onsubmit="return false;">
+        <form id="auth-form">
           <div class="auth-field">
             <label for="auth-password">Master Password</label>
             <div class="password-wrapper">

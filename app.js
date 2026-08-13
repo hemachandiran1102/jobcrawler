@@ -497,6 +497,176 @@ function updateActiveStatusTab() {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   INBOUND INTERVIEW & NEXT STEPS PIPELINE
+   ══════════════════════════════════════════════════════════════════════ */
+
+state.inbound = [];
+state.inboundTab = 'next-steps';
+
+async function loadInboundPipeline() {
+  if (location.protocol === 'file:') return;
+
+  try {
+    const resp = await fetch('interview_pipeline.json');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data) && data.length > 0) {
+        state.inbound = data;
+        renderInboundPipeline();
+        return;
+      }
+    }
+  } catch {}
+
+  try {
+    const resp = await fetch('interview_pipeline.csv');
+    if (resp.ok) {
+      const text = await resp.text();
+      const rows = parseCSV(text);
+      if (rows.length) {
+        state.inbound = rows.map((r) => ({
+          ...r,
+          'Is Next Step': String(r['Is Next Step'] || '').toLowerCase() === 'true' || ['Interview Invitation', 'Technical Assessment', 'Availability / Inquiry'].includes(r.Category),
+        }));
+        renderInboundPipeline();
+      }
+    }
+  } catch {}
+}
+
+function renderInboundPipeline() {
+  const container = $('inbound-cards-container');
+  if (!container) return;
+
+  const all = state.inbound || [];
+  const nextSteps = all.filter((i) => i['Is Next Step'] === true || ['Interview Invitation', 'Technical Assessment', 'Availability / Inquiry'].includes(i.Category));
+  const invites = all.filter((i) => i.Category === 'Interview Invitation');
+  const assessments = all.filter((i) => i.Category === 'Technical Assessment');
+  const inquiries = all.filter((i) => String(i.Category || '').includes('Availability'));
+
+  // Update Counters
+  if ($('nav-nextsteps-count')) $('nav-nextsteps-count').textContent = nextSteps.length.toString();
+  if ($('inbound-count-badge')) $('inbound-count-badge').textContent = `${nextSteps.length} Actionable`;
+  if ($('tab-inbound-action')) $('tab-inbound-action').textContent = nextSteps.length.toString();
+  if ($('tab-inbound-invites')) $('tab-inbound-invites').textContent = invites.length.toString();
+  if ($('tab-inbound-assessments')) $('tab-inbound-assessments').textContent = assessments.length.toString();
+  if ($('tab-inbound-inquiries')) $('tab-inbound-inquiries').textContent = inquiries.length.toString();
+  if ($('tab-inbound-all')) $('tab-inbound-all').textContent = all.length.toString();
+
+  // Filter for display
+  let displayed = [];
+  if (state.inboundTab === 'next-steps') displayed = nextSteps;
+  else if (state.inboundTab === 'invites') displayed = invites;
+  else if (state.inboundTab === 'assessments') displayed = assessments;
+  else if (state.inboundTab === 'inquiries') displayed = inquiries;
+  else displayed = all;
+
+  if (!displayed.length) {
+    container.innerHTML = `
+      <div class="inbound-empty-card" style="grid-column: 1 / -1; padding: 2rem; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px; text-align: center; color: #94a3b8;">
+        <p style="margin: 0; font-size: 14px;">No emails found for this tab. Run <code>python email_triage.py</code> to sync your inbox.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = displayed.map((item, idx) => {
+    const cat = item.Category || 'General';
+    let cardClass = 'inbound-card';
+    let badgeClass = 'badge-general';
+    let icon = '⚪';
+
+    if (cat === 'Interview Invitation') {
+      cardClass += ' is-interview';
+      badgeClass = 'badge-interview';
+      icon = '🟢';
+    } else if (cat === 'Technical Assessment') {
+      cardClass += ' is-assessment';
+      badgeClass = 'badge-assessment';
+      icon = '🔵';
+    } else if (cat.includes('Availability')) {
+      cardClass += ' is-inquiry';
+      badgeClass = 'badge-inquiry';
+      icon = '🟡';
+    } else if (cat === 'Rejection') {
+      cardClass += ' is-rejection';
+      badgeClass = 'badge-rejection';
+      icon = '🔴';
+    }
+
+    const actionUrl = item['Action URL'] || '';
+    const hasBookingLink = actionUrl && /^https?:\/\//i.test(actionUrl);
+    const sender = item.Sender || 'Recruiter';
+    const cleanSenderEmail = (sender.match(/<([^>]+)>/) || [null, sender])[1].trim();
+    const replySubject = encodeURIComponent(`Re: ${item.Subject || 'Interview Next Steps'}`);
+    const replyBody = encodeURIComponent(`Hi ${item.Company} Team,\n\nThank you for reaching out regarding the ${item['Job Title']} role!\n\nI would be delighted to proceed with the next steps. Please let me know your available times or feel free to send over any additional details.\n\nBest regards,\nHemachandiran Giri`);
+    const mailtoLink = `mailto:${cleanSenderEmail}?subject=${replySubject}&body=${replyBody}`;
+
+    return `
+      <article class="${cardClass}">
+        <div class="inbound-head">
+          <div>
+            <h3 class="inbound-company">${esc(item.Company || 'Company')}</h3>
+            <p class="inbound-role">${esc(item['Job Title'] || 'Role')}</p>
+          </div>
+          <span class="inbound-badge ${badgeClass}">${icon} ${esc(cat)}</span>
+        </div>
+
+        <div class="inbound-action-box">
+          <span>⚡</span>
+          <div><b>Action:</b> ${esc(item['Action Required'] || 'Review recruiter response')}</div>
+        </div>
+
+        <p class="inbound-snippet">${esc(item['Email Snippet'] || item.Subject || 'No snippet available.')}</p>
+
+        <div class="inbound-actions">
+          ${hasBookingLink ? `<a href="${esc(actionUrl)}" target="_blank" rel="noopener noreferrer" class="inbound-btn inbound-btn-primary">📅 Book Call / Test →</a>` : ''}
+          <a href="${mailtoLink}" class="inbound-btn inbound-btn-reply">✉️ Reply Email</a>
+          <button class="inbound-btn inbound-btn-done ${item['Replied Status'] === 'Yes' ? 'is-done' : ''}" onclick="toggleInboundDone(${idx})">
+            ${item['Replied Status'] === 'Yes' ? '✓ Replied' : '○ Mark Replied'}
+          </button>
+        </div>
+
+        <div class="inbound-meta">
+          <span>From: ${esc(sender.split('<')[0].trim() || sender)}</span>
+          <span>📅 ${esc(item['Date Received'] || '')}</span>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+window.toggleInboundDone = (idx) => {
+  if (state.inbound && state.inbound[idx]) {
+    const cur = state.inbound[idx]['Replied Status'];
+    state.inbound[idx]['Replied Status'] = cur === 'Yes' ? 'No' : 'Yes';
+    renderInboundPipeline();
+    showToast(`Updated status for ${state.inbound[idx].Company}.`);
+  }
+};
+
+function initInboundTabs() {
+  const bar = $('inbound-tabs-bar');
+  if (!bar) return;
+  bar.querySelectorAll('[data-inbound-tab]').forEach((btn) => {
+    btn.onclick = () => {
+      state.inboundTab = btn.dataset.inboundTab;
+      bar.querySelectorAll('[data-inbound-tab]').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderInboundPipeline();
+    };
+  });
+
+  const scanBtn = $('scan-emails-btn');
+  if (scanBtn) {
+    scanBtn.onclick = () => {
+      loadInboundPipeline();
+      showToast('Refreshing Inbound Next Steps pipeline…');
+    };
+  }
+}
+
 function renderCountryBars(countries, totalRoles) {
   const container = $('country-bars');
   if (!container) return;
@@ -1231,6 +1401,8 @@ $('sync-sheets-now').onclick = () => {
 
 // ── Startup: Authentication Gate check & Data Loading ──
 async function initDashboardData() {
+  loadInboundPipeline();
+
   // Load default Webhook URL from config file if not set in localStorage
   try {
     const cfgResp = await fetch('google_sheets_config.json');
@@ -1409,6 +1581,7 @@ function initStatusTabs() {
   initAuth();
   initCountryChartToolbar();
   initStatusTabs();
+  initInboundTabs();
   if ($('auth-overlay') && !isAuthActive()) {
     showAuthModal();
   } else {

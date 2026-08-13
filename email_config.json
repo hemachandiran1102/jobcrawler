@@ -1,0 +1,34 @@
+{
+  "email": "",
+  "password": "",
+  "provider": "gmail",
+  "imap_server": "imap.gmail.com",
+  "imap_port": 993,
+  "use_ssl": true,
+  "folders": ["INBOX"],
+  "days_back": 14,
+  "max_emails": 200,
+  "mark_as_read": false,
+  "providers_preset": {
+    "gmail": {
+      "imap_server": "imap.gmail.com",
+      "imap_port": 993,
+      "note": "Use a Google App Password (16 letters): https://myaccount.google.com/apppasswords"
+    },
+    "outlook": {
+      "imap_server": "outlook.office365.com",
+      "imap_port": 993,
+      "note": "Use Microsoft account email and App Password if 2FA is enabled."
+    },
+    "yahoo": {
+      "imap_server": "imap.mail.yahoo.com",
+      "imap_port": 993,
+      "note": "Use Yahoo Generated App Password."
+    },
+    "icloud": {
+      "imap_server": "imap.mail.me.com",
+      "imap_port": 993,
+      "note": "Use Apple App-Specific Password."
+    }
+  }
+}
