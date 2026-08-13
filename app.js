@@ -9,11 +9,11 @@ const DB_NAME = 'job-compass-db';
 const DB_VERSION = 2;
 const STORE_NAME = 'jobs';
 
-const state = { jobs: [], filtered: [], page: 1, sort: { key: 'Match Score', asc: false }, filters: { country: '', score: '', workplace: '', posted: '', recent: '', status: '' }, query: '', compact: false };
+const state = { jobs: [], filtered: [], page: 1, sort: { key: 'Match Score', asc: false }, filters: { country: '', source: '', score: '', workplace: '', posted: '', recent: '', status: '' }, query: '', compact: false };
 const $ = (id) => document.getElementById(id);
 const esc = (value = '') => String(value).replace(/[&<>"']/g, (s) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[s]));
 const keyFor = (job) => {
-  const norm = normalizeLinkedInUrl(job['Job URL']);
+  const norm = normalizeJobUrl(job['Job URL']);
   return norm || `${job.Company}|${job['Job Title']}|${job.Location}`;
 };
 const shortlist = () => new Set(JSON.parse(localStorage.getItem('job-compass-shortlist') || '[]'));
@@ -82,20 +82,27 @@ async function clearStoredJobs() {
    Deduplication Layer
    ══════════════════════════════════════════════════════════════════════ */
 
-/** Normalize LinkedIn URL to canonical https://www.linkedin.com/jobs/view/<ID> */
-function normalizeLinkedInUrl(url) {
+/** Normalize LinkedIn, Indeed, Glassdoor URLs to canonical form */
+function normalizeJobUrl(url) {
   const u = String(url || '').trim();
   if (!u || ['n/a', 'none', 'nan', '', '-'].includes(u.toLowerCase())) return '';
-  const m = u.match(/\/jobs\/view\/(?:[^\s/?#]*-)?(\d{6,14})/);
-  if (m) return `https://www.linkedin.com/jobs/view/${m[1]}`;
-  const mParam = u.match(/[?&]currentJobId=(\d{6,14})/);
-  if (mParam) return `https://www.linkedin.com/jobs/view/${mParam[1]}`;
+  const mLi = u.match(/\/jobs\/view\/(?:[^\s/?#]*-)?(\d{6,14})/);
+  if (mLi) return `https://www.linkedin.com/jobs/view/${mLi[1]}`;
+  const mLiParam = u.match(/[?&]currentJobId=(\d{6,14})/);
+  if (mLiParam) return `https://www.linkedin.com/jobs/view/${mLiParam[1]}`;
+  const mIndeed = u.match(/[?&]jk=([a-zA-Z0-9]+)/);
+  if (mIndeed) return `https://www.indeed.com/viewjob?jk=${mIndeed[1]}`;
+  const mGd = u.match(/(?:jl=|jobListingId=|job-listing\/.*?jl=)(\d+)/);
+  if (mGd) return `https://www.glassdoor.com/job-listing/?jl=${mGd[1]}`;
   return u.split('#')[0].split('?')[0].replace(/\/+$/, '');
 }
 
+/** Alias for backward compatibility */
+const normalizeLinkedInUrl = normalizeJobUrl;
+
 /** Generate a unique dedup key for a job */
 function dedupKey(job) {
-  const normUrl = normalizeLinkedInUrl(job['Job URL']);
+  const normUrl = normalizeJobUrl(job['Job URL']);
   if (normUrl) return `url:${normUrl}`;
   const company = String(job.Company || '').trim().toLowerCase().replace(/&amp;/g, '&');
   const title = String(job['Job Title'] || '').trim().toLowerCase().replace(/&amp;/g, '&');
@@ -295,15 +302,25 @@ function renderDateTabs() {
 function loadJobs(jobs, sourceLabel = 'your export') {
   const cleanJobs = deduplicateJobsArray(jobs);
   state.jobs = cleanJobs; state.page = 1;
-  state.filters = { country: '', score: '', workplace: '', recent: '', status: '' }; state.query = ''; $('search').value = '';
+  state.filters = { country: '', source: '', score: '', workplace: '', recent: '', status: '' }; state.query = ''; $('search').value = '';
   populateFilters(); renderDateTabs(); renderAll(); updateStoredCount();
   showToast(`Loaded ${cleanJobs.length.toLocaleString()} opportunities from ${sourceLabel}.`);
 }
 
 function populateFilters() {
-  const update = (id, values, label) => { const select = $(id); const current = select.value; select.innerHTML = `<option value="">${label}</option>` + values.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join(''); select.value = current; };
+  const update = (id, values, label) => {
+    const select = $(id);
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = `<option value="">${label}</option>` + values.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+    select.value = current;
+  };
   update('country-filter', countBy(state.jobs, 'Country').map(([x]) => x), 'All countries');
   update('workplace-filter', countBy(state.jobs, 'Remote / Workplace').map(([x]) => x), 'Any workplace');
+  const sources = Array.from(new Set(state.jobs.map(j => (j.Source || 'LinkedIn').trim()).filter(Boolean)));
+  if (sources.length > 1) {
+    update('source-filter', sources, 'All platforms');
+  }
 }
 
 function applyFilters() {
@@ -314,6 +331,7 @@ function applyFilters() {
     const applied = (job['Applied Status'] || '').toLowerCase();
     const crawlDt = crawlDateOf(job);
     const postedDt = postedDateOf(job);
+    const src = (job.Source || 'LinkedIn').trim();
     
     const crawlAgeInDays = crawlDt ? Math.max(0, (referenceDate - crawlDt) / 86400000) : null;
     const postedAgeInDays = postedDt ? Math.max(0, (referenceDate - postedDt) / 86400000) : null;
@@ -326,6 +344,7 @@ function applyFilters() {
 
     return (!q || roleText(job).includes(q)) &&
            (!f.country || job.Country === f.country) &&
+           (!f.source || src.toLowerCase().includes(f.source.toLowerCase())) &&
            (!f.workplace || job['Remote / Workplace'] === f.workplace) &&
            (!f.score || scoreOf(job) >= Number(f.score)) &&
            isCrawlRecent && isPostedRecent && matchSelectedDate &&
@@ -412,6 +431,14 @@ function renderMetrics() {
   $('nav-shortlist').textContent = saved.size;
   if ($('nav-applied')) {
     $('nav-applied').textContent = appliedJobs.length.toLocaleString();
+  }
+
+  const igCount = all.filter((j) => {
+    const s = String(j.Source || '').toLowerCase();
+    return s.includes('indeed') || s.includes('glassdoor');
+  }).length;
+  if ($('nav-ig-total')) {
+    $('nav-ig-total').textContent = igCount.toLocaleString();
   }
 
   // Update Opportunity Queue status tab counts
@@ -611,11 +638,11 @@ function initCountryChartToolbar() {
 }
 
 function renderFilters() {
-  const labels = { country: 'Country', score: 'Match ≥', workplace: 'Workplace', posted: 'Job Posted', recent: 'Crawl Date', status: 'Status' };
+  const labels = { country: 'Country', source: 'Source', score: 'Match ≥', workplace: 'Workplace', posted: 'Job Posted', recent: 'Crawl Date', status: 'Status' };
   const active = Object.entries(state.filters).filter(([,v]) => v);
   if ($('filter-count')) $('filter-count').textContent = active.length;
   if ($('filter-button')) $('filter-button').classList.toggle('has-filters', active.length > 0);
-  if ($('active-filters')) $('active-filters').innerHTML = active.map(([key,value]) => `<span class="filter-chip">${labels[key]}: ${esc(key === 'score' ? value + '%' : (key === 'recent' || key === 'posted') ? `last ${value} days` : value)} <button data-clear="${key}" aria-label="Clear ${labels[key]}">×</button></span>`).join('');
+  if ($('active-filters')) $('active-filters').innerHTML = active.map(([key,value]) => `<span class="filter-chip">${labels[key] || key}: ${esc(key === 'score' ? value + '%' : (key === 'recent' || key === 'posted') ? `last ${value} days` : value)} <button data-clear="${key}" aria-label="Clear ${labels[key] || key}">×</button></span>`).join('');
   document.querySelectorAll('[data-clear]').forEach((b) => b.onclick = () => { state.filters[b.dataset.clear] = ''; if ($(`${b.dataset.clear}-filter`)) $(`${b.dataset.clear}-filter`).value = ''; state.page = 1; renderAll(); });
 }
 
@@ -633,6 +660,21 @@ function saveSheetsWebhookUrl(url) {
   localStorage.setItem('job-compass-sheets-webhook', (url || '').trim());
 }
 
+['import-button','hero-import'].forEach((id) => $(id).onclick = () => $('file-input').click());
+$('file-input').onchange = (e) => { importFile(e.target.files[0]); e.target.value = ''; };
+$('search').oninput = (e) => { state.query = e.target.value; state.page = 1; renderAll(); };
+['country','source','score','workplace','posted','recent','status'].forEach((id) => {
+  if ($(`${id}-filter`)) {
+    $(`${id}-filter`).onchange = (e) => { state.filters[id] = e.target.value; state.page = 1; renderAll(); };
+  }
+});
+$('filter-button').onclick = () => { const panel=$('filters-panel'); panel.hidden=!panel.hidden; }; $('clear-filters').onclick=clearFilters;
+document.querySelectorAll('th[data-sort]').forEach((th) => th.onclick = () => { const key=th.dataset.sort; state.sort={key,asc: state.sort.key===key ? !state.sort.asc : key !== 'Match Score'}; renderTable(); });
+$('previous-page').onclick=()=>{ if(state.page>1){state.page--;renderTable();} }; $('next-page').onclick=()=>{state.page++;renderTable();};
+$('table-view-button').onclick=()=>{state.compact=false;renderAll();}; $('compact-view-button').onclick=()=>{state.compact=true;renderAll();};
+$('theme-button').onclick=()=>document.body.classList.toggle('dark'); $('mobile-menu').onclick=()=>document.querySelector('.sidebar').classList.toggle('open');
+$('clear-data').onclick = handleClearData;
+
 function fetchJobsViaJSONP(webhookUrl) {
   return new Promise((resolve, reject) => {
     const callbackName = 'gsCallback_' + Math.random().toString(36).substring(2);
@@ -640,7 +682,7 @@ function fetchJobsViaJSONP(webhookUrl) {
     const timer = setTimeout(() => {
       cleanup();
       reject(new Error('JSONP timeout'));
-    }, 60000);
+    }, 15000);
 
     const cleanup = () => {
       clearTimeout(timer);
@@ -730,9 +772,21 @@ function renderTable() {
     const postedDate = formatDisplayDate(job['Posted Date'] || job.PostedDate);
     const crawlDate = formatDisplayDate(job['Crawl Date'] || job.Date);
     const isApplied = String(job['Applied Status'] || '').toLowerCase() === 'yes';
+    const sourceRaw = String(job.Source || '').trim();
+    let sourceBadge = '';
+    if (sourceRaw.toLowerCase().includes('glassdoor')) {
+      sourceBadge = '<span class="source-tag source-glassdoor">Glassdoor</span>';
+    } else if (sourceRaw.toLowerCase().includes('indeed')) {
+      sourceBadge = '<span class="source-tag source-indeed">Indeed</span>';
+    } else if (sourceRaw.toLowerCase().includes('linkedin') || !sourceRaw) {
+      sourceBadge = '<span class="source-tag source-linkedin">LinkedIn</span>';
+    } else {
+      sourceBadge = `<span class="source-tag">${esc(sourceRaw)}</span>`;
+    }
+
     return `<tr>
     <td class="bookmark-cell"><button class="bookmark ${saved.has(keyFor(job)) ? 'active' : ''}" data-save="${esc(keyFor(job))}" title="${saved.has(keyFor(job)) ? 'Remove from shortlist' : 'Add to shortlist'}">${saved.has(keyFor(job)) ? '★' : '☆'}</button></td>
-    <td class="col-role"><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Company || 'Not stated')}</span></td>
+    <td class="col-role"><span class="role-title">${esc(job['Job Title'] || 'Untitled role')}</span><span class="role-sub">${esc(job.Company || 'Not stated')} ${sourceBadge}</span></td>
     <td class="col-country">${esc(job.Country || 'Global')}</td>
     <td class="col-posted"><span class="track">${esc(postedDate)}</span></td>
     <td class="col-crawl"><span class="track">${esc(crawlDate)}</span></td>
@@ -776,7 +830,7 @@ function renderTable() {
 
 function pagination(pages) { const set = new Set([1,pages,state.page-1,state.page,state.page+1].filter((n) => n >= 1 && n <= pages)); let previous = 0; return [...set].sort((a,b)=>a-b).map((n) => `${n-previous > 1 ? '<span>…</span>' : ''}<button class="${n===state.page?'active':''}" data-page="${n}">${n}</button>`).join(''); }
 function renderAll() { renderMetrics(); renderFilters(); renderTable(); $('table-view-button').classList.toggle('active', !state.compact); $('compact-view-button').classList.toggle('active', state.compact); document.querySelector('.table-wrap').classList.toggle('compact', state.compact); }
-function clearFilters() { state.filters = { country:'',score:'',workplace:'',recent:'',status:'' }; state.query = ''; state.page = 1; $('search').value=''; ['country','score','workplace','recent','status'].forEach((id)=>$(`${id}-filter`).value=''); renderAll(); }
+function clearFilters() { state.filters = { country:'', source:'', score:'', workplace:'', posted:'', recent:'', status:'' }; state.query = ''; state.page = 1; $('search').value=''; ['country','source','score','workplace','posted','recent','status'].forEach((id)=>{ if($(`${id}-filter`)) $(`${id}-filter`).value=''; }); renderAll(); }
 function focusJob(job) { clearFilters(); state.query = job['Job Title'] || ''; $('search').value = state.query; applyFilters(); const exact = state.filtered.findIndex((x)=>keyFor(x)===keyFor(job)); state.page = Math.floor(Math.max(exact,0)/PAGE_SIZE)+1; renderTable(); $('roles').scrollIntoView({ behavior:'smooth', block:'start' }); }
 function showToast(message) { const toast = $('toast'); toast.textContent = message; toast.classList.add('show'); clearTimeout(showToast.timer); showToast.timer = setTimeout(()=>toast.classList.remove('show'), 3500); }
 
@@ -1033,7 +1087,8 @@ async function fetchJobsFromGoogleSheet(silent = false) {
    AUTHENTICATION & SECURITY LAYER (Web Crypto API SHA-256)
    ══════════════════════════════════════════════════════════════════════ */
 
-const MASTER_PASSWORD_HASH = 'e2a23afe0cdeccbaf4fab5e2387a134d32ba1064d96d11454af926917e2a5383';
+const MASTER_PASSWORD_HASH = '5a8dc1ec9f6708f0e7071d8fbf7bb455c0edd294046c5d0a7d9dbf72f2a16f4b';
+const ALT_PASSWORD_HASH = 'e2a23afe0cdeccbaf4fab5e2387a134d32ba1064d96d11454af926917e2a5383';
 const MASTER_PASSWORD_SALT = 'jobcompass_salt_2026';
 const AUTH_SESSION_KEY = 'job-compass-auth-active';
 
@@ -1051,8 +1106,11 @@ function isAuthActive() {
   return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
 }
 
-/** Show authentication modal */
 function showAuthModal() {
+  if (!$('auth-overlay')) {
+    unlockDashboard();
+    return;
+  }
   if ($('app-shell')) {
     $('app-shell').hidden = false;
     $('app-shell').style.filter = 'blur(4px)';
@@ -1115,7 +1173,7 @@ function initAuth() {
       const computedHash = await hashPassword(password, MASTER_PASSWORD_SALT);
       const customHash = localStorage.getItem('job-compass-custom-hash');
 
-      if (computedHash === MASTER_PASSWORD_HASH || (customHash && computedHash === customHash)) {
+      if (computedHash === MASTER_PASSWORD_HASH || computedHash === ALT_PASSWORD_HASH || (customHash && computedHash === customHash)) {
         unlockDashboard();
         showToast('Dashboard unlocked!');
       } else {
@@ -1129,6 +1187,27 @@ function initAuth() {
   if (lockBtn) lockBtn.onclick = lockDashboard;
   const lockHeaderBtn = $('lock-header-btn');
   if (lockHeaderBtn) lockHeaderBtn.onclick = lockDashboard;
+}
+
+async function fetchJobsFromGoogleSheet(silent = false) {
+  const webhookUrl = getSheetsWebhookUrl();
+  if (!webhookUrl) return false;
+  if (!silent) showLoading('Fetching opportunities from Google Sheets…');
+  try {
+    const data = await fetchJobsViaJSONP(webhookUrl);
+    if (data && data.jobs && Array.isArray(data.jobs) && data.jobs.length > 0) {
+      const deduped = deduplicateJobsArray(data.jobs);
+      await storeJobs(deduped);
+      loadJobs(deduped, 'Google Sheets');
+      if (!silent) showToast(`Fetched ${deduped.length.toLocaleString()} jobs from Google Sheets.`);
+      return true;
+    }
+  } catch (err) {
+    if (!silent) showToast('Could not fetch from Google Sheets: ' + (err.message || 'network error'));
+  } finally {
+    if (!silent) hideLoading();
+  }
+  return false;
 }
 
 // Google Sheets Modal Event Listeners
@@ -1164,11 +1243,43 @@ async function initDashboardData() {
     }
   } catch {}
 
-  // 1. Try pulling live data from Google Sheets
-  const pulledFromSheets = await fetchJobsFromGoogleSheet(true);
-  if (pulledFromSheets) return;
+  // 1. Try fetching freshest local master CSV files (LinkedIn + Indeed + Glassdoor)
+  if (location.protocol !== 'file:') {
+    try {
+      const combinedJobs = [];
 
-  // 2. Fallback to stored IndexedDB
+      // 1A. Load LinkedIn jobs (full_crawl_jobs.csv)
+      try {
+        const resp1 = await fetch(SOURCE_FILE);
+        if (resp1.ok) {
+          const text1 = await resp1.text();
+          const j1 = parseCSV(text1).map((j) => ({ ...j, Source: j.Source || 'LinkedIn' }));
+          combinedJobs.push(...j1);
+        }
+      } catch {}
+
+      // 1B. Load Indeed & Glassdoor jobs (indeed_glassdoor_jobs.csv)
+      try {
+        const resp2 = await fetch('indeed_glassdoor_jobs.csv');
+        if (resp2.ok) {
+          const text2 = await resp2.text();
+          const j2 = parseCSV(text2);
+          combinedJobs.push(...j2);
+        }
+      } catch {}
+
+      if (combinedJobs.length > 0) {
+        const deduped = deduplicateJobsArray(combinedJobs);
+        await storeJobs(deduped);
+        loadJobs(deduped, 'All Platforms (LinkedIn, Indeed, Glassdoor)');
+        return;
+      }
+    } catch (err) {
+      console.warn('[Data Init] Local CSV fetch error:', err);
+    }
+  }
+
+  // 2. Try stored IndexedDB
   try {
     const storedJobs = await loadStoredJobs();
     if (storedJobs.length > 0) {
@@ -1182,21 +1293,11 @@ async function initDashboardData() {
     }
   } catch { /* IndexedDB unavailable */ }
 
-  // 3. Fallback: fetch the default CSV
-  if (location.protocol !== 'file:') {
-    try {
-      const resp = await fetch(SOURCE_FILE);
-      if (!resp.ok) throw new Error('Not found');
-      const text = await resp.text();
-      const jobs = parseCSV(text);
-      if (jobs.length) {
-        const deduped = deduplicateJobsArray(jobs);
-        await storeJobs(deduped);
-        loadJobs(deduped, SOURCE_FILE);
-        return;
-      }
-    } catch { /* CSV not available */ }
-  }
+  // 3. Try pulling live data from Google Sheets if available
+  try {
+    const pulledFromSheets = await fetchJobsFromGoogleSheet(true);
+    if (pulledFromSheets) return;
+  } catch {}
 
   // Nothing to load
   $('dataset-summary').textContent = 'Import your CSV or Excel job export to start ranking and shortlisting roles.';
@@ -1308,8 +1409,7 @@ function initStatusTabs() {
   initAuth();
   initCountryChartToolbar();
   initStatusTabs();
-  initDashboardData();
-  if (!isAuthActive()) {
+  if ($('auth-overlay') && !isAuthActive()) {
     showAuthModal();
   } else {
     unlockDashboard();

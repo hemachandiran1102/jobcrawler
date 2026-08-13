@@ -349,6 +349,10 @@ function renderMetrics() {
   if ($('tab-count-glassdoor')) $('tab-count-glassdoor').textContent = gdCount.toLocaleString();
   if ($('tab-count-applied')) $('tab-count-applied').textContent = appliedCount.toLocaleString();
   if ($('tab-count-shortlisted')) $('tab-count-shortlisted').textContent = savedCount.toLocaleString();
+  if ($('nav-ig-total')) $('nav-ig-total').textContent = total.toLocaleString();
+  if ($('nav-all')) $('nav-all').textContent = total.toLocaleString();
+  if ($('nav-shortlist')) $('nav-shortlist').textContent = savedCount.toLocaleString();
+  if ($('nav-applied')) $('nav-applied').textContent = appliedCount.toLocaleString();
 
   renderCountryBars(countries, total || 1);
 
@@ -541,7 +545,8 @@ function showToast(msg) {
    AUTHENTICATION GATE (SHA-256)
    ══════════════════════════════════════════════════════════════════════ */
 
-const MASTER_PASSWORD_HASH = 'e2a23afe0cdeccbaf4fab5e2387a134d32ba1064d96d11454af926917e2a5383';
+const MASTER_PASSWORD_HASH = '5a8dc1ec9f6708f0e7071d8fbf7bb455c0edd294046c5d0a7d9dbf72f2a16f4b';
+const ALT_PASSWORD_HASH = 'e2a23afe0cdeccbaf4fab5e2387a134d32ba1064d96d11454af926917e2a5383';
 const MASTER_PASSWORD_SALT = 'jobcompass_salt_2026';
 const AUTH_SESSION_KEY = 'job-compass-auth-active';
 
@@ -555,6 +560,10 @@ async function hashPassword(password, salt) {
 function isAuthActive() { return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true'; }
 
 function showAuthModal() {
+  if (!$('auth-overlay')) {
+    unlockDashboard();
+    return;
+  }
   if ($('app-shell')) {
     $('app-shell').style.filter = 'blur(4px)';
     $('app-shell').style.pointerEvents = 'none';
@@ -584,7 +593,7 @@ function initAuth() {
       e.preventDefault();
       const p = ($('auth-password').value || '').trim();
       const h = await hashPassword(p, MASTER_PASSWORD_SALT);
-      if (h === MASTER_PASSWORD_HASH) {
+      if (h === MASTER_PASSWORD_HASH || h === ALT_PASSWORD_HASH) {
         unlockDashboard();
       } else {
         $('auth-error').textContent = 'Incorrect master password.';
@@ -601,25 +610,31 @@ function initAuth() {
    ══════════════════════════════════════════════════════════════════════ */
 
 async function initData() {
+  // 1. Try fetching fresh CSV first
+  if (location.protocol !== 'file:') {
+    try {
+      const resp = await fetch(SOURCE_FILE);
+      if (resp.ok) {
+        const text = await resp.text();
+        const jobs = parseCSV(text);
+        if (jobs.length) {
+          const deduped = deduplicateJobsArray(jobs);
+          await storeJobs(deduped);
+          loadJobs(deduped, SOURCE_FILE);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[IG Board] Could not fetch CSV:', err);
+    }
+  }
+
+  // 2. Fallback to stored IndexedDB
   try {
     const stored = await loadStoredJobs();
     if (stored.length > 0) {
       loadJobs(stored, 'stored data');
       return;
-    }
-  } catch {}
-
-  try {
-    const resp = await fetch(SOURCE_FILE);
-    if (resp.ok) {
-      const text = await resp.text();
-      const jobs = parseCSV(text);
-      if (jobs.length) {
-        const deduped = deduplicateJobsArray(jobs);
-        await storeJobs(deduped);
-        loadJobs(deduped, SOURCE_FILE);
-        return;
-      }
     }
   } catch {}
 
@@ -708,7 +723,7 @@ function initUIListeners() {
 (function init() {
   initAuth();
   initUIListeners();
-  if (!isAuthActive()) {
+  if ($('auth-overlay') && !isAuthActive()) {
     showAuthModal();
   } else {
     unlockDashboard();

@@ -3,6 +3,8 @@
 .playwright-session/
 .playwright-session-*/
 .indeed-glassdoor-session/
+.cf_session/
+.debug_session/
 *.session
 *.log
 .env

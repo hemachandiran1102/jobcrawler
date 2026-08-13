@@ -16,7 +16,7 @@
         <a class="brand" href="#top" aria-label="Job Compass home"><span class="brand-mark">J</span><span>job<span>compass</span></span></a>
         <nav class="nav" aria-label="Main navigation">
           <a class="active" href="index.html" id="nav-overview-link"><span>💼</span> LinkedIn Board</a>
-          <a href="indeed_glassdoor.html" id="nav-ig-link"><span>🌐</span> Indeed & Glassdoor</a>
+          <a href="indeed_glassdoor.html" id="nav-ig-link"><span>🌐</span> Indeed & Glassdoor <b id="nav-ig-total" style="background:#2563eb; color:#ffffff; padding:1px 6px; border-radius:8px; font-size:11px; margin-left:auto;">0</b></a>
           <a href="#roles" id="nav-roles-link"><span>⌕</span> Explore roles</a>
           <a href="#shortlist" id="nav-shortlist-link"><span>★</span> Shortlist <b id="nav-shortlist">0</b></a>
           <a href="#applied" id="nav-applied-link"><span>✓</span> Applied <b id="nav-applied" class="nav-applied-badge">0</b></a>
@@ -147,6 +147,7 @@
           </div>
 
           <div class="filters-panel" id="filters-panel" hidden>
+            <label>Platform / Source<select id="source-filter"><option value="">All platforms</option><option value="LinkedIn">LinkedIn</option><option value="Indeed">Indeed</option><option value="Glassdoor">Glassdoor</option></select></label>
             <label>Country<select id="country-filter"><option value="">All countries</option></select></label>
             <label>Match Score<select id="score-filter"><option value="">Any score</option><option value="85">85%+ Top match</option><option value="70">70%+ Good match</option></select></label>
             <label>Workplace<select id="workplace-filter"><option value="">Any workplace</option></select></label>
