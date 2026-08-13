@@ -547,9 +547,6 @@ async function loadInboundPipeline() {
 }
 
 function renderInboundPipeline() {
-  const container = $('inbound-cards-container');
-  if (!container) return;
-
   const all = state.inbound || [];
   const nextSteps = all.filter((i) => i['Is Next Step'] === true || ['Interview Invitation', 'Technical Assessment', 'Availability / Inquiry'].includes(i.Category));
   const invites = all.filter((i) => i.Category === 'Interview Invitation');
@@ -559,6 +556,9 @@ function renderInboundPipeline() {
   // Update Counters
   if ($('nav-nextsteps-count')) $('nav-nextsteps-count').textContent = nextSteps.length.toString();
   if ($('inbound-count-badge')) $('inbound-count-badge').textContent = `${nextSteps.length} Actionable`;
+
+  const container = $('inbound-cards-container');
+  if (!container) return;
   if ($('tab-inbound-action')) $('tab-inbound-action').textContent = nextSteps.length.toString();
   if ($('tab-inbound-invites')) $('tab-inbound-invites').textContent = invites.length.toString();
   if ($('tab-inbound-assessments')) $('tab-inbound-assessments').textContent = assessments.length.toString();

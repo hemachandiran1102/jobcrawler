@@ -120,32 +120,6 @@
           </article>
         </section>
 
-        <!-- 📬 INBOUND INTERVIEW & NEXT STEPS PIPELINE -->
-        <section class="inbound-section" id="inbound-pipeline" style="margin-bottom: 2rem;">
-          <div class="queue-master-bar" style="border-left: 3px solid #10b981;">
-            <div class="queue-left">
-              <h2>📬 Inbound Next Steps & Interviews <span class="queue-count-badge" id="inbound-count-badge" style="background:#10b981; color:#ffffff;">0 Actionable</span></h2>
-            </div>
-            <div class="queue-center">
-              <div class="status-tabs-bar" id="inbound-tabs-bar">
-                <button class="status-pill active" data-inbound-tab="next-steps" style="border-color: rgba(16,185,129,0.4);">⚡ Action Required (<b id="tab-inbound-action">0</b>)</button>
-                <button class="status-pill" data-inbound-tab="invites">🟢 Invites (<b id="tab-inbound-invites">0</b>)</button>
-                <button class="status-pill" data-inbound-tab="assessments">🔵 Assessments (<b id="tab-inbound-assessments">0</b>)</button>
-                <button class="status-pill" data-inbound-tab="inquiries">🟡 Availability (<b id="tab-inbound-inquiries">0</b>)</button>
-                <button class="status-pill" data-inbound-tab="all">All Responses (<b id="tab-inbound-all">0</b>)</button>
-              </div>
-            </div>
-            <div class="queue-right">
-              <button class="filter-button" id="scan-emails-btn" style="background:#10b981; color:#0f172a; font-weight:700; border:none;">🔄 Sync Emails</button>
-            </div>
-          </div>
-          <div id="inbound-cards-container" class="inbound-cards-grid" style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1rem;">
-            <div class="inbound-empty-card" style="grid-column: 1 / -1; padding: 2rem; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px; text-align: center; color: #94a3b8;">
-              <p style="margin: 0; font-size: 14px;">📬 No triaged recruiter next steps loaded yet. Run <code>python email_triage.py</code> to scan your inbox.</p>
-            </div>
-          </div>
-        </section>
-
         <section class="roles-section" id="roles">
           <div class="queue-master-bar">
             <div class="queue-left">
@@ -233,35 +207,6 @@
         </form>
         <div class="auth-footer">
           <span>Encrypted with SHA-256 Web Crypto API · Private & Secure</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Inbound Full Email Reader Modal -->
-    <div class="modal-overlay" id="inbound-email-modal" hidden>
-      <div class="modal-card" style="max-width: 780px; width: 92%; max-height: 88vh; display: flex; flex-direction: column;">
-        <header class="modal-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span id="modal-email-icon" style="font-size: 20px;">📬</span>
-            <h3 id="modal-email-title" style="margin: 0; font-size: 16px; font-weight: 600;">Email Details</h3>
-          </div>
-          <button id="close-email-modal" aria-label="Close modal">×</button>
-        </header>
-        <div class="modal-body" style="overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-          <div class="email-modal-meta-grid" id="modal-email-meta"></div>
-          <div class="inbound-action-box" id="modal-email-action-box" style="margin: 0;"></div>
-          <div class="email-modal-body-container">
-            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin: 0 0 8px 0; letter-spacing: 0.5px;">Full Message:</h4>
-            <div id="modal-email-full-text" class="email-modal-body-text"></div>
-          </div>
-          <div id="modal-email-links-section" style="display: none;">
-            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin: 0 0 8px 0; letter-spacing: 0.5px;">Extracted Action Links:</h4>
-            <div id="modal-email-links-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
-          </div>
-        </div>
-        <div class="modal-actions" id="modal-email-actions" style="padding: 14px 20px; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center;">
-          <button id="close-email-modal-btn" class="filter-button" style="padding: 8px 16px;">Close</button>
-          <div id="modal-email-action-btns" style="display: flex; gap: 10px;"></div>
         </div>
       </div>
     </div>
