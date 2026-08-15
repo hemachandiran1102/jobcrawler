@@ -187,17 +187,17 @@ def main():
     # ── STAGE 1: LinkedIn Crawler ──
     if run_linkedin:
         print(f"\n{MAGENTA}{BOLD}▶ STAGE 1: LINKEDIN CRAWLER{RESET}")
-        lk_args = ["full_crawl_to_word.py"]
-        if args.headless:
-            lk_args.append("--headless")
+        lk_args = ["full_crawl_to_word.py", "--days", str(args.days)]
+        if not args.headless:
+            lk_args.append("--no-headless")
         run_step("LinkedIn Crawl & Export", lk_args)
 
     # ── STAGE 2: Indeed & Glassdoor Crawler ──
     if run_indeed_gd:
         print(f"\n{MAGENTA}{BOLD}▶ STAGE 2: INDEED & GLASSDOOR CRAWLER{RESET}")
-        ig_args = ["crawl_indeed_glassdoor.py"]
-        if args.headless:
-            ig_args.append("--headless")
+        ig_args = ["crawl_indeed_glassdoor.py", "--days", str(args.days)]
+        if not args.headless:
+            ig_args.append("--no-headless")
         run_step("Indeed & Glassdoor Crawl", ig_args)
 
     # ── STAGE 3: Visa Sponsorship Enrichment ──
