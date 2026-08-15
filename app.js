@@ -1042,120 +1042,14 @@ async function handleClearData() {
 }
 
 
-/* ══════════════════════════════════════════════════════════════════════
-   Startup & Event Wiring
-   ══════════════════════════════════════════════════════════════════════ */
-
-['import-button','hero-import'].forEach((id) => $(id).onclick = () => $('file-input').click());
-$('file-input').onchange = (e) => { importFile(e.target.files[0]); e.target.value = ''; };
-$('search').oninput = (e) => { state.query = e.target.value; state.page = 1; renderAll(); };
-['country','score','workplace','posted','recent','status'].forEach((id) => $(`${id}-filter`).onchange = (e) => { state.filters[id] = e.target.value; state.page = 1; renderAll(); });
-$('filter-button').onclick = () => { const panel=$('filters-panel'); panel.hidden=!panel.hidden; }; $('clear-filters').onclick=clearFilters;
-document.querySelectorAll('th[data-sort]').forEach((th) => th.onclick = () => { const key=th.dataset.sort; state.sort={key,asc: state.sort.key===key ? !state.sort.asc : key !== 'Match Score'}; renderTable(); });
-$('previous-page').onclick=()=>{ if(state.page>1){state.page--;renderTable();} }; $('next-page').onclick=()=>{state.page++;renderTable();};
-$('table-view-button').onclick=()=>{state.compact=false;renderAll();}; $('compact-view-button').onclick=()=>{state.compact=true;renderAll();};
-$('theme-button').onclick=()=>document.body.classList.toggle('dark'); $('mobile-menu').onclick=()=>document.querySelector('.sidebar').classList.toggle('open');
-$('clear-data').onclick = handleClearData;
-
-function fetchJobsViaJSONP(webhookUrl) {
-  return new Promise((resolve, reject) => {
-    const callbackName = 'gsCallback_' + Math.random().toString(36).substring(2);
-    const script = document.createElement('script');
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('JSONP timeout'));
-    }, 15000);
-
-    const cleanup = () => {
-      clearTimeout(timer);
-      delete window[callbackName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    };
-
-    window[callbackName] = (data) => {
-      cleanup();
-      resolve(data);
-    };
-
-    script.onerror = (err) => {
-      cleanup();
-      reject(err);
-    };
-
-    const separator = webhookUrl.includes('?') ? '&' : '?';
-    script.src = `${webhookUrl}${separator}action=get_jobs&callback=${callbackName}`;
-    document.head.appendChild(script);
-  });
-}
-
-async function fetchJobsFromGoogleSheet(silent = false) {
-  let webhookUrl = getSheetsWebhookUrl();
-  if (!webhookUrl) {
-    if (!silent) showToast('Please enter your Google Apps Script Webhook URL first.');
-    return false;
-  }
-
-  if (!silent) showLoading('Fetching latest job data from Google Sheets…');
-  try {
-    let data = null;
-
-    // 1. Primary: JSONP script injection (bypasses CORS & 302 redirects on file:// / localhost)
-    try {
-      data = await fetchJobsViaJSONP(webhookUrl);
-    } catch {
-      // 2. Fallback: GET fetch
-      try {
-        const fetchUrl = webhookUrl + (webhookUrl.includes('?') ? '&' : '?') + 'action=get_jobs';
-        const res = await fetch(fetchUrl, { method: 'GET', redirect: 'follow' });
-        const text = await res.text();
-        data = JSON.parse(text);
-      } catch {
-        // 3. Fallback: POST fetch
-        const postRes = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'get_jobs' })
-        });
-        data = await postRes.json();
-      }
-    }
-
-    if (data && data.success && Array.isArray(data.jobs) && data.jobs.length > 0) {
-      const normalizedJobs = data.jobs.map((j) => ({
-        ...j,
-        'Job URL': String(j['Job URL'] || j.JobURL || j.url || '').trim(),
-        'Company': String(j.Company || j.company || 'N/A').trim(),
-        'Job Title': String(j['Job Title'] || j.JobTitle || j.title || 'Role').trim(),
-        'Country': String(j.Country || j.country || 'Global').trim(),
-        'Location': String(j.Location || j.location || j.Country || '').trim(),
-        'Crawl Date': String(j['Crawl Date'] || j.CrawlDate || j.Date || '').trim(),
-        'Applied Status': String(j['Applied Status'] || j.AppliedStatus || j.Applied || 'No').trim(),
-        'Match Score': String(j['Match Score'] !== undefined ? j['Match Score'] : (j.MatchScore !== undefined ? j.MatchScore : '85%')).trim(),
-        'Remote / Workplace': String(j['Remote / Workplace'] || j.Workplace || 'On-site / Hybrid').trim(),
-        'Easy Apply': String(j['Easy Apply'] || j.EasyApply || 'No').trim(),
-        'Visa Sponsorship Mentioned': String(j['Visa Sponsorship'] || j['Visa Sponsorship Mentioned'] || 'No').trim(),
-        'Required Skills': String(j['Required Skills'] || j.Skills || '').trim(),
-        'Notes': String(j.Notes || '').trim()
-      })).filter((j) => j['Job Title'] && j['Job Title'] !== 'Job Title');
-
-      if (normalizedJobs.length > 0) {
-        const deduped = deduplicateJobsArray(normalizedJobs);
-        await clearStoredJobs();
-        await storeJobs(deduped);
-        loadJobs(deduped, 'Google Sheets');
-        if (!silent) showToast(`Loaded ${deduped.length.toLocaleString()} opportunities live from Google Sheets!`);
-        return true;
-      }
-    }
-    
-    if (!silent) showToast('Google Sheets returned 0 jobs or empty response.');
-  } catch (err) {
-    console.warn('[Google Sheets] Fetch failed:', err);
-    if (!silent) showToast('Could not fetch from Google Sheets — check network connection.');
-  } finally {
-    if (!silent) hideLoading();
-  }
-  return false;
+function loadInboundPipelineBadge() {
+  fetch('interview_pipeline.json')
+    .then((r) => r.json())
+    .then((data) => {
+      const nextSteps = (data || []).filter((d) => d['Is Next Step'] === true || d['Is Next Step'] === 'True' || d['Is Next Step'] === 'true');
+      if ($('nav-nextsteps-count')) $('nav-nextsteps-count').textContent = nextSteps.length.toString();
+    })
+    .catch(() => {});
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1306,7 +1200,7 @@ $('sync-sheets-now').onclick = () => {
 
 // ── Startup: Authentication Gate check & Data Loading ──
 async function initDashboardData() {
-  loadInboundPipeline();
+  loadInboundPipelineBadge();
 
   // Load default Webhook URL from config file if not set in localStorage
   try {

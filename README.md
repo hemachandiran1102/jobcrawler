@@ -46,25 +46,36 @@ playwright install chromium
 
 ---
 
-### 2. Running Job Crawls
+### 2. Running the Unified Master Crawler (All-in-One)
 
-Run the crawler with optional arguments to filter by time window, target countries, or job caps:
+Run the **all-in-one unified automation engine** to crawl LinkedIn, Indeed, Glassdoor, enrich Visa Sponsorships, triage multi-lingual emails, and sync to Google Sheets in a single command:
 
 ```bash
-# Past 24 hours (Default)
+# Run ALL crawlers & triage end-to-end (Default)
+python master_crawler.py
+# Or alias
+python run_all_crawlers.py
+
+# Run only job boards (LinkedIn + Indeed + Glassdoor + Visa Enrichment)
+python master_crawler.py --jobs-only
+
+# Run only Email Triage & Next Steps pipeline
+python master_crawler.py --email-only
+
+# Run only Google Sheets synchronization
+python master_crawler.py --sync-only
+```
+
+#### Individual Crawler Modules:
+```bash
+# LinkedIn Only
 python full_crawl_to_word.py --time-window 24h
 
-# Past 1 week (7 Days)
-python full_crawl_to_word.py --time-window 1w
+# Indeed & Glassdoor Only
+python crawl_indeed_glassdoor.py
 
-# Past 1 month (30 Days) for specific countries / regions / cities
-python full_crawl_to_word.py --time-window 1m --countries canada uk uae "saudi arabia" qatar
-# Or filter by region / city aliases
-python full_crawl_to_word.py --countries "canada cities" "uk cities" "arabian cities"
-python full_crawl_to_word.py --countries london toronto dubai riyadh amsterdam
-
-# Cap jobs per keyword
-python full_crawl_to_word.py --max-per-keyword 50
+# Multi-Lingual Email Inbound Triage Only
+python email_triage.py --days 30 --max 200
 ```
 
 #### CLI Options:
