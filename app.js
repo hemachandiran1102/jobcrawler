@@ -1221,7 +1221,8 @@ async function initDashboardData() {
 
       // 1A. Load LinkedIn jobs (full_crawl_jobs.csv)
       try {
-        const resp1 = await fetch(SOURCE_FILE);
+        const cacheBust = `?_t=${Date.now()}`;
+        const resp1 = await fetch(SOURCE_FILE + cacheBust);
         if (resp1.ok) {
           const text1 = await resp1.text();
           const j1 = parseCSV(text1).map((j) => ({ ...j, Source: j.Source || 'LinkedIn' }));
@@ -1231,7 +1232,7 @@ async function initDashboardData() {
 
       // 1B. Load Indeed & Glassdoor jobs (indeed_glassdoor_jobs.csv)
       try {
-        const resp2 = await fetch('indeed_glassdoor_jobs.csv');
+        const resp2 = await fetch('indeed_glassdoor_jobs.csv' + cacheBust);
         if (resp2.ok) {
           const text2 = await resp2.text();
           const j2 = parseCSV(text2);
