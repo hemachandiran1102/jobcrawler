@@ -1214,12 +1214,18 @@ async function initDashboardData() {
     }
   } catch {}
 
-  // 1. Try fetching freshest local master CSV files (LinkedIn + Indeed + Glassdoor)
+  // 1. Try pulling live data from Google Sheets (always freshest source)
+  try {
+    const pulledFromSheets = await fetchJobsFromGoogleSheet(true);
+    if (pulledFromSheets) return;
+  } catch {}
+
+  // 2. Try fetching local master CSV files (LinkedIn + Indeed + Glassdoor)
   try {
       const combinedJobs = [];
       const cacheBust = `?_t=${Date.now()}`;
 
-      // 1A. Load LinkedIn jobs (full_crawl_jobs.csv)
+      // 2A. Load LinkedIn jobs (full_crawl_jobs.csv)
       try {
         const resp1 = await fetch(SOURCE_FILE + cacheBust);
         if (resp1.ok) {
@@ -1229,7 +1235,7 @@ async function initDashboardData() {
         }
       } catch {}
 
-      // 1B. Load Indeed & Glassdoor jobs (indeed_glassdoor_jobs.csv)
+      // 2B. Load Indeed & Glassdoor jobs (indeed_glassdoor_jobs.csv)
       try {
         const resp2 = await fetch('indeed_glassdoor_jobs.csv' + cacheBust);
         if (resp2.ok) {
@@ -1249,7 +1255,7 @@ async function initDashboardData() {
       console.warn('[Data Init] Local CSV fetch error:', err);
     }
 
-  // 2. Try stored IndexedDB
+  // 3. Try stored IndexedDB
   try {
     const storedJobs = await loadStoredJobs();
     if (storedJobs.length > 0) {
@@ -1262,12 +1268,6 @@ async function initDashboardData() {
       return;
     }
   } catch { /* IndexedDB unavailable */ }
-
-  // 3. Try pulling live data from Google Sheets if available
-  try {
-    const pulledFromSheets = await fetchJobsFromGoogleSheet(true);
-    if (pulledFromSheets) return;
-  } catch {}
 
   // Nothing to load
   $('dataset-summary').textContent = 'Import your CSV or Excel job export to start ranking and shortlisting roles.';
