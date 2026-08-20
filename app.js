@@ -1215,13 +1215,12 @@ async function initDashboardData() {
   } catch {}
 
   // 1. Try fetching freshest local master CSV files (LinkedIn + Indeed + Glassdoor)
-  if (location.protocol !== 'file:') {
-    try {
+  try {
       const combinedJobs = [];
+      const cacheBust = `?_t=${Date.now()}`;
 
       // 1A. Load LinkedIn jobs (full_crawl_jobs.csv)
       try {
-        const cacheBust = `?_t=${Date.now()}`;
         const resp1 = await fetch(SOURCE_FILE + cacheBust);
         if (resp1.ok) {
           const text1 = await resp1.text();
@@ -1249,7 +1248,6 @@ async function initDashboardData() {
     } catch (err) {
       console.warn('[Data Init] Local CSV fetch error:', err);
     }
-  }
 
   // 2. Try stored IndexedDB
   try {
